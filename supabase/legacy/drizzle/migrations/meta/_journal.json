@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792913221143,
+      "tag": "0000_planner_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793275121522,
+      "tag": "0001_event_access_levels_and_information_currency",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793275278534,
+      "tag": "0002_my_area_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793276887588,
+      "tag": "0003_document_text_superseded",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793320533500,
+      "tag": "0004_operations_plans_library",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793321870663,
+      "tag": "0005_ops_documents_sections_pages",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793330567141,
+      "tag": "0006_event_operations_plans",
+      "breakpoints": true
+    }
+  ]
+}

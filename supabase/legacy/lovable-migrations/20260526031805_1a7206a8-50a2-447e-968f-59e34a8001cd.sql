@@ -1,0 +1,1 @@
+ALTER TABLE public.template_sections ADD COLUMN IF NOT EXISTS show_in_wizard boolean NOT NULL DEFAULT false;

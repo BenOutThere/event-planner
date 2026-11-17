@@ -1,0 +1,2 @@
+ALTER TABLE public.template_sections ADD COLUMN parent_id uuid NULL REFERENCES public.template_sections(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_template_sections_parent_id ON public.template_sections(parent_id);
