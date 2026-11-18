@@ -39,6 +39,32 @@ const COUNT_LABELS: Array<[keyof EventCounts, string]> = [
   ["pins", "Pins"], ["assignments", "Assignments"], ["indexedFiles", "Indexed files"],
 ];
 
+const eventMismatch = (r: Report["events"][number]) => !r.after || COUNT_LABELS.some(([k]) => r.before[k] !== r.after![k]);
+
+/** The reconciliation as a Markdown file, to keep or send on. */
+function reportMarkdown(r: Report, people: PersonStatus[] | null) {
+  const lines = ["# Event Planner move: reconciliation", "", `Run at ${new Date().toISOString()}`, "", "## Per event (old app → OTG Shared)", ""];
+  lines.push(`| Event | ${COUNT_LABELS.map(([, l]) => l).join(" | ")} | Match |`, `|${"---|".repeat(COUNT_LABELS.length + 2)}`);
+  for (const e of r.events) {
+    const cells = COUNT_LABELS.map(([k]) => (e.after?.[k] === e.before[k] ? `${e.before[k]}` : `${e.before[k]} → ${e.after?.[k] ?? "missing"}`));
+    lines.push(`| ${e.before.name.replace(/\|/g, "/")} | ${cells.join(" | ")} | ${eventMismatch(e) ? "⚠️" : "✅"} |`);
+  }
+  lines.push("", "## Per table", "", "| Table | Exported | Skipped | Now in OTG Shared |", "|---|---|---|---|");
+  for (const t of r.tables) lines.push(`| ${t.table} | ${t.exported} | ${t.skipped} | ${t.now} |`);
+  lines.push("", `Files: ${r.files.exported} exported, ${r.files.uploaded} copied, ${r.files.now} now stored.`);
+  const issues = [...r.files.failed, ...r.skipped];
+  lines.push("", "## Needs a look", "", ...(issues.length ? issues.map((i) => `- ${i}`) : ["Nothing."]));
+  if (people?.length) lines.push("", "## People", "", ...people.map((p) => `- ${p.email}: ${p.status}${p.note ? ` (${p.note})` : ""}`));
+  return lines.join("\n") + "\n";
+}
+
+function downloadText(name: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function MoveImportPage() {
   const { isAdmin, loading } = useAuth();
   const peopleFn = useServerFn(importPeople);
@@ -143,7 +169,6 @@ function MoveImportPage() {
   }
 
   const noLogin = (people ?? []).filter((p) => p.status === "login will be created");
-  const eventMismatch = (r: Report["events"][number]) => !r.after || COUNT_LABELS.some(([k]) => r.before[k] !== r.after![k]);
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-4">
@@ -193,7 +218,10 @@ function MoveImportPage() {
 
       {report && (
         <Card className="p-5 space-y-4 text-sm">
-          <h2 className="text-xl font-semibold">Reconciliation</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-xl font-semibold">Reconciliation</h2>
+            <Button variant="outline" size="sm" onClick={() => downloadText(`event-planner-reconciliation-${new Date().toISOString().slice(0, 10)}.md`, reportMarkdown(report, people))}>Download report</Button>
+          </div>
           <div>
             <p className="font-medium">Per event (old app → OTG Shared)</p>
             <div className="overflow-x-auto">
