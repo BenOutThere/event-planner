@@ -218,7 +218,7 @@ function HelpPage() {
           </Section>
 
           <Section id="access" icon={Users} title="Who can see and edit">
-            <p><strong>Global role</strong> — what someone can do across the app:</p>
+            <p><strong>Global role</strong> — what someone can do across the app. Each person has one role, shown under their name in the main menu and on the Admin page; admins change it there.</p>
             <ul>
               {(["admin", "lead", "member", "viewer", "supplier"] as const).map((r) => (
                 <li key={r}><strong>{GLOBAL_ROLE_INFO[r].label}</strong> — {GLOBAL_ROLE_INFO[r].description}</li>

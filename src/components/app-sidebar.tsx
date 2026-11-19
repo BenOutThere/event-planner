@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, ListChecks, BookUser, CalendarPlus, Settings, LogOut, LayoutTemplate, HelpCircle, ClipboardList } from "lucide-react";
 import { canReadOps } from "@/lib/operations";
+import { GLOBAL_ROLE_INFO, primaryRole } from "@/lib/access";
 import {
   Sidebar,
   SidebarContent,
@@ -31,7 +32,8 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { user, isAdmin, roles, signOut } = useAuth();
   const canCreate = isAdmin || roles.includes("lead") || roles.includes("member");
-  const roleLabel = isAdmin ? "Admin" : roles[0] ? roles[0][0].toUpperCase() + roles[0].slice(1) : "No role";
+  const top = primaryRole(roles);
+  const roleLabel = top ? GLOBAL_ROLE_INFO[top].label : "No role";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (p: string) => pathname === p || pathname.startsWith(p + "/");
 
