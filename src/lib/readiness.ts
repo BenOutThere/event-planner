@@ -22,7 +22,7 @@ import { formatAuRange } from "@/lib/dates";
 
 export type TodoItem =
   | { kind: "required"; area: StructArea; field: StructField; detail?: string }
-  | { kind: "review"; area: StructArea; detail: string }
+  | { kind: "review"; area: StructArea; detail: string; overdue: boolean }
   | { kind: "unconfigured"; area: StructArea }
   | { kind: "contact"; area: StructArea; field: StructField; detail: string; row?: number }
   | { kind: "dates"; area: StructArea; field: StructField; detail: string };
@@ -57,7 +57,7 @@ export function todoItems(w: TodoInput): TodoItem[] {
       }
     }
     const r = reviewState(w.meta.get(area.id), w.areaUpdatedAt(area), w.today);
-    if (r.needsReview) out.push({ kind: "review", area, detail: r.label });
+    if (r.needsReview) out.push({ kind: "review", area, detail: r.label, overdue: r.reason === "overdue" });
   }
   const dc = dateCheck(w.areas, w.getValue);
   if (dc.descLoc) for (const m of dc.conflicts) {
@@ -68,6 +68,11 @@ export function todoItems(w: TodoInput): TodoItem[] {
 }
 
 export type TodoCounts = { required: number; review: number; unconfigured: number; contact: number; dates: number; total: number };
+
+/** Reviews past their due date: the "overdue" count on event cards. */
+export function overdueCount(items: TodoItem[]): number {
+  return items.filter((i) => i.kind === "review" && i.overdue).length;
+}
 
 export function todoCounts(items: TodoItem[]): TodoCounts {
   const c = { required: 0, review: 0, unconfigured: 0, contact: 0, dates: 0, total: items.length };
