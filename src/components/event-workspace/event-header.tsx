@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, CalendarDays, ChevronsUpDown, MapPin, MoreHorizontal, Search, Info, Link2, Settings2, Trash2, Users, X,
-  Loader2, AlertTriangle, CheckCircle2, RotateCw, Eye, Check, Archive, ArchiveRestore, Lightbulb,
+  Loader2, AlertTriangle, CheckCircle2, RotateCw, Eye, Check, Archive, ArchiveRestore, Lightbulb, UserCog,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSaver, useSaverStatus } from "@/hooks/use-event-saver";
@@ -25,6 +25,9 @@ import { formatAuRange } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "./context";
 import { AccessDialog } from "./access-dialog";
+import { PersonPicker, type PersonValue } from "@/components/fields/person-picker";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export function SaveIndicator() {
   const status = useSaverStatus();
@@ -151,6 +154,7 @@ export function EventHeader({
   const [deleting, setDeleting] = useState(false);
   const [accessOpen, setAccessOpen] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [leadOpen, setLeadOpen] = useState(false);
   const [dismissedPrompt, setDismissedPrompt] = useState<string | null>(null);
   const info = STAGE_INFO[event.stage] ?? STAGE_INFO.draft;
   const prompt = canManage && !preview ? stagePrompt(event.stage, event.proposed_date, event.end_date, today) : null;
@@ -247,6 +251,9 @@ export function EventHeader({
                 {(canManage || (isAdmin && !archived)) && (
                   <DropdownMenuItem onSelect={() => setAccessOpen(true)}><Users className="size-4" /> People with access…</DropdownMenuItem>
                 )}
+                {isAdmin && !archived && (
+                  <DropdownMenuItem onSelect={() => setLeadOpen(true)}><UserCog className="size-4" /> Change event lead…</DropdownMenuItem>
+                )}
                 {canManage && (
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger><Settings2 className="size-4" /> Change status</DropdownMenuSubTrigger>
@@ -307,6 +314,7 @@ export function EventHeader({
       )}
 
       {accessOpen && <AccessDialog open={accessOpen} onOpenChange={setAccessOpen} />}
+      {leadOpen && <LeadDialog open={leadOpen} onOpenChange={setLeadOpen} />}
 
       <AlertDialog open={confirmArchive} onOpenChange={setConfirmArchive}>
         <AlertDialogContent>
@@ -341,5 +349,45 @@ export function EventHeader({
         </AlertDialogContent>
       </AlertDialog>
     </header>
+  );
+}
+
+/** Admins choose the event lead from OTG people. The lead manages the event. */
+function LeadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const w = useWorkspace();
+  const qc = useQueryClient();
+  const [lead, setLead] = useState<PersonValue>({ userId: w.event.lead_user_id ?? null, name: "" });
+  const [busy, setBusy] = useState(false);
+  const people = [...w.profiles.entries()].map(([id, name]) => ({ id, name }));
+
+  async function save() {
+    setBusy(true);
+    const { error } = await supabase.from("events").update({ lead_user_id: lead.userId }).eq("id", w.eventId);
+    setBusy(false);
+    if (error) return toast.error(error.code === "42501" ? error.message : "Couldn't change the event lead.");
+    toast.success(lead.userId ? `${lead.name} is now the event lead` : "Event lead removed");
+    qc.invalidateQueries({ queryKey: ["event", w.eventId] });
+    qc.invalidateQueries({ queryKey: ["events"] });
+    qc.invalidateQueries({ queryKey: ["my-event-access"] });
+    onOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Event lead</DialogTitle>
+          <DialogDescription>The event lead is shown on Event Home and manages this event automatically. Only admins can change it.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <Label htmlFor="event-lead">Event lead</Label>
+          <PersonPicker id="event-lead" ariaLabel="Event lead" people={people} value={lead} onChange={setLead} allowOther={false} noneLabel="No event lead" />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={save} disabled={busy || lead.userId === (w.event.lead_user_id ?? null)}>{busy ? "Saving…" : "Save"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

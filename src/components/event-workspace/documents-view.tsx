@@ -24,6 +24,7 @@ import { formatAuTimestamp, formatAuTimestampDate } from "@/lib/currency";
 import { indexDocument } from "@/lib/documents.functions";
 import { downloadStoredFile, FilePreviewDialog, fmtSize, openStoredFile, uploadPath, uploadWithProgress } from "@/components/fields/files-field";
 import { cn } from "@/lib/utils";
+import { usePeopleNames } from "@/components/fields/people-context";
 import { useWorkspace } from "./context";
 import { openDoc } from "./event-home";
 
@@ -259,6 +260,7 @@ function EditDetailsDialog({ d, onClose, onSave }: { d: DocItem; onClose: () => 
   const [label, setLabel] = useState(d.record.label ?? "");
   const [description, setDescription] = useState(d.record.description ?? "");
   const [responsible, setResponsible] = useState(d.record.responsible ?? "");
+  const people = usePeopleNames();
   const [version, setVersion] = useState(d.record.version ?? "");
   const [status, setStatus] = useState<DocStatus>(d.status);
   return (
@@ -272,7 +274,7 @@ function EditDetailsDialog({ d, onClose, onSave }: { d: DocItem; onClose: () => 
           <div className="space-y-1"><Label htmlFor="doc-title">Title</Label><Input id="doc-title" value={label} onChange={(e) => setLabel(e.target.value)} /></div>
           <div className="space-y-1"><Label htmlFor="doc-desc">Description</Label><Textarea id="doc-desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What it is and when to use it" /></div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1"><Label htmlFor="doc-resp">Responsible person</Label><Input id="doc-resp" value={responsible} onChange={(e) => setResponsible(e.target.value)} /></div>
+            <div className="space-y-1"><Label htmlFor="doc-resp">Responsible person</Label><Input id="doc-resp" list="doc-resp-people" autoComplete="off" value={responsible} onChange={(e) => setResponsible(e.target.value)} placeholder="Choose an OTG person or type a name" /><datalist id="doc-resp-people">{people.map((p) => <option key={p} value={p} />)}</datalist></div>
             <div className="space-y-1"><Label htmlFor="doc-ver">Version or revision</Label><Input id="doc-ver" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="e.g. v3 or Rev B" /></div>
           </div>
           <div className="space-y-1">

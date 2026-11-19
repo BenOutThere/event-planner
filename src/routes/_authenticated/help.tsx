@@ -150,7 +150,7 @@ function HelpPage() {
           <Section id="currency" icon={Clock} title="Ownership & reviews">
             <ul>
               <li>Each section shows <strong>when it was last updated and by whom</strong>.</li>
-              <li>Editors can set an optional <strong>responsible person</strong> and <strong>review date</strong> (⋯ → <em>Responsible person &amp; review date</em>).</li>
+              <li>Editors can set an optional <strong>responsible person</strong> and <strong>review date</strong> (⋯ → <em>Responsible person &amp; review date</em>). Pick an OTG person from the list (their name stays up to date), or choose <em>Someone else</em> to type a name or team.</li>
               <li><strong>Mark reviewed</strong> records that someone checked the section is current. Editing never marks a section reviewed.</li>
               <li>After a review, any later change shows <em>Changed since review</em>. After the review date, it shows <em>Review overdue</em>.</li>
               <li><strong>Change history</strong> (⋯ menu) lists recent changes; quick edits by the same person are grouped.</li>
@@ -180,6 +180,8 @@ function HelpPage() {
               <li>The <strong>⋯</strong> on each row edits it in a larger window, moves it, inserts a row below, or deletes it (with Undo).</li>
               <li><strong>Manage columns</strong> renames, reorders, adds or removes columns, with a warning before information would be lost.</li>
               <li>If two people edit different rows or cells at the same time, both changes are kept. If they change the same cell, you're asked which version to keep.</li>
+              <li>Columns headed <em>Email</em> or <em>Phone</em>/<em>Mobile</em> are checked: anything that isn't an email address or phone number is marked with a warning so it can be fixed. It's still saved.</li>
+              <li>In columns headed <em>Name</em>, <em>Person</em> or <em>Contact</em>, OTG people are suggested as you type (in the row window and on phones). Anyone else can still be typed.</li>
             </ul>
           </Section>
 
@@ -212,7 +214,7 @@ function HelpPage() {
             <ul>
               {(["view", "edit", "manage"] as const).map((l) => <li key={l}><strong>{ACCESS_INFO[l].label}</strong> — {ACCESS_INFO[l].description}</li>)}
             </ul>
-            <p>The event lead and the person who created an event manage it automatically. Only admins can give someone <em>Can manage</em>. An assignment never gives access to other events. Names in contact tables are information only — they never give access.</p>
+            <p>The event lead and the person who created an event manage it automatically. Only admins can change the event lead (⋯ → <em>Change event lead</em>), choosing from OTG people. People's names come from their Control Centre profile, so update a name there. Only admins can give someone <em>Can manage</em>. An assignment never gives access to other events. Names in contact tables are information only — they never give access.</p>
             <p>Admins can see each person's effective access in <em>Admin → Show effective access</em>, and use <em>Preview as external stakeholder</em> in an event's ⋯ menu.</p>
             <p>Assignments created under the old rules kept their editing access and are listed under <em>Assignments to check</em> so an admin can confirm the right level.</p>
           </Section>

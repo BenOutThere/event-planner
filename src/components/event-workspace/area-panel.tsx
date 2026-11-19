@@ -29,6 +29,7 @@ export function AreaPanel({ area, highlight }: { area: StructArea; highlight: { 
   const editing = w.canEdit && !!w.search.edit;
   const onlyIncomplete = editing && !!w.search.incomplete;
   const m = w.meta.get(area.id);
+  const responsibleName = (m?.responsible_user_id && w.profiles.get(m.responsible_user_id)) || m?.responsible_name || null;
   const upd = w.areaUpdated(area);
   const review = reviewState(m, upd.at, w.today);
   const restricted = w.areaPerms?.get(area.id)?.restricted_to ?? null;
@@ -100,7 +101,7 @@ export function AreaPanel({ area, highlight }: { area: StructArea; highlight: { 
           </h2>
           {!w.preview && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              {m?.responsible_name && <span className="inline-flex items-center gap-1"><User className="size-3.5" aria-hidden /> Responsible: <span className="text-foreground">{m.responsible_name}</span></span>}
+              {responsibleName && <span className="inline-flex items-center gap-1"><User className="size-3.5" aria-hidden /> Responsible: <span className="text-foreground">{responsibleName}</span></span>}
               <span>{upd.at ? `Updated ${formatAuTimestamp(upd.at)}${upd.by ? ` by ${upd.by}` : ""}` : "No information saved yet"}</span>
               {(w.canEdit || review.reason === "reviewed" || review.reason === "changed") && (
                 <span className={cn("inline-flex items-center gap-1 rounded border px-1.5 py-px", reviewTone)}>

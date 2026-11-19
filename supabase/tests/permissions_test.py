@@ -52,6 +52,7 @@ CHECKS = [
  ('Events', 'See Event B', f"select count(*) from eventplanner.events where id='{B}'", READ_B),
  ('Events', 'Create an event', "insert into eventplanner.events (name, created_by) values ('New', auth.uid()) returning 1", CREATORS),
  ('Events', 'Change Event A details', f"update eventplanner.events set name='x' where id='{A}' returning 1", MANAGE_A),
+ ('Events', 'Change Event A\'s lead', f"update eventplanner.events set lead_user_id='{uid('Member')}' where id='{A}' returning 1", {'Admin'}),
  ('Events', 'Delete Event A', f"delete from eventplanner.events where id='{A}' returning 1", {'Admin'}),
  ('Events', 'Event directory for other apps (count)', "select count(*) from eventplanner.event_directory()",
    lambda p: 0 if p == 'Deactivated in CC' else 1 if p in EXT else 2),

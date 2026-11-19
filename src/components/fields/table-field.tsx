@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,21 +10,26 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  ArrowDown, ArrowUp, Columns3, LayoutList, MoreHorizontal, Pencil, Plus, Rows3, Table as TableIcon, Trash2, Mail, Phone,
+  ArrowDown, ArrowUp, Columns3, LayoutList, MoreHorizontal, Pencil, Plus, Rows3, Table as TableIcon, Trash2, Mail, Phone, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { asTable, type TableValue } from "@/lib/coverage";
 import { cn } from "@/lib/utils";
 
-const EMAIL_COL = /e-?mail/i;
-const PHONE_COL = /phone|mobile|\bmob\b|\bcell\b/i;
-const EMAIL_VAL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { cellProblem, columnKind, EMAIL_RE as EMAIL_VAL } from "@/lib/contact-checks";
+import { usePeopleNames } from "./people-context";
 
 function colType(name: string): "email" | "tel" | "text" {
-  if (EMAIL_COL.test(name)) return "email";
-  if (PHONE_COL.test(name)) return "tel";
-  return "text";
+  const k = columnKind(name);
+  return k === "email" || k === "tel" ? k : "text";
+}
+
+/** Suggests OTG people in name columns; anyone else can still be typed. */
+function PeopleList({ id }: { id: string }) {
+  const people = usePeopleNames();
+  if (!people.length) return null;
+  return <datalist id={id}>{people.map((p) => <option key={p} value={p} />)}</datalist>;
 }
 
 /** Render a saved cell; emails and phone numbers become tappable links. */
@@ -32,6 +37,16 @@ export function CellText({ value, column }: { value: string; column: string }) {
   const v = (value ?? "").trim();
   if (!v) return <span className="text-muted-foreground">—</span>;
   const t = colType(column);
+  const problem = cellProblem(column, v);
+  if (problem) {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-x-1.5">
+        <span className="break-all">{v}</span>
+        <AlertTriangle className="size-3.5 text-destructive shrink-0" aria-label={problem} />
+        <span className="sr-only">{problem}</span>
+      </span>
+    );
+  }
   if (t === "email" || EMAIL_VAL.test(v)) {
     return <a href={`mailto:${v}`} className="text-primary underline underline-offset-2 break-all inline-flex items-center gap-1"><Mail className="size-3 shrink-0" aria-hidden />{v}</a>;
   }
@@ -157,6 +172,7 @@ export function TableField({
   const [newCols, setNewCols] = useState(3);
   const [newRows, setNewRows] = useState(3);
   const cells = useRef(new Map<string, HTMLTextAreaElement>());
+  const peopleListId = `people-${useId().replace(/:/g, "")}`;
   const [focusReq, setFocusReq] = useState<{ r: number; c: number } | null>(null);
 
   const table = asTable(value) ?? asTable(defaults);
@@ -252,6 +268,7 @@ export function TableField({
 
   return (
     <div className="space-y-2" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) onBlur?.(); }}>
+      <PeopleList id={peopleListId} />
       {showCards ? (
         <ul className="space-y-2" aria-label={fieldLabel}>
           {t.rows.map((row, ri) => (
@@ -264,7 +281,11 @@ export function TableField({
                 <div key={ci} className="space-y-1">
                   <Label htmlFor={`card-${ri}-${ci}`} className="text-xs">{c}{isReq(c) && <span className="text-destructive" aria-label="required"> *</span>}</Label>
                   <Input id={`card-${ri}-${ci}`} type={colType(c)} inputMode={colType(c) === "text" ? undefined : colType(c) as any}
+                    list={columnKind(c) === "person" ? peopleListId : undefined}
+                    aria-invalid={!!cellProblem(c, row[ci])} title={cellProblem(c, row[ci]) ?? undefined}
+                    className={cn(cellProblem(c, row[ci]) && "border-destructive")}
                     value={row[ci] ?? ""} disabled={disabled} onChange={(e) => setCell(ri, ci, e.target.value)} />
+                  {cellProblem(c, row[ci]) && <p className="text-xs text-destructive">{cellProblem(c, row[ci])}</p>}
                 </div>
               ))}
             </li>
@@ -287,9 +308,10 @@ export function TableField({
               {t.rows.map((row, ri) => (
                 <tr key={ri} id={domId ? tableRowDomId(domId, ri) : undefined} className={cn("border-b last:border-b-0 align-top hover:bg-muted/20 scroll-mt-32", highlightRow === ri && "bg-accent/15 ring-2 ring-inset ring-accent/60")}>
                   {t.columns.map((c, ci) => (
-                    <td key={ci} className="p-0 border-r last:border-r-0">
+                    <td key={ci} className={cn("p-0 border-r last:border-r-0", cellProblem(c, row[ci]) && "bg-destructive/10 ring-1 ring-inset ring-destructive/50")} title={cellProblem(c, row[ci]) ?? undefined}>
                       <AutoTextarea
                         aria-label={`${c}, row ${ri + 1}`}
+                        aria-invalid={!!cellProblem(c, row[ci])}
                         inputMode={colType(c) === "text" ? undefined : colType(c) as any}
                         value={row[ci] ?? ""}
                         disabled={disabled}
@@ -358,15 +380,20 @@ function RowEditor({
             return (
               <div key={ci} className="space-y-1">
                 <Label htmlFor={`row-${ci}`}>{c}{isReq(c) && <span className="text-destructive" aria-label="required"> *</span>}</Label>
-                {t === "text" ? (
+                {columnKind(c) === "person" ? (
+                  <Input id={`row-${ci}`} list="row-editor-people" autoComplete="off" value={row[ci] ?? ""} onChange={(e) => onCell(rowIndex, ci, e.target.value)} />
+                ) : t === "text" ? (
                   <Textarea id={`row-${ci}`} rows={2} value={row[ci] ?? ""} onChange={(e) => onCell(rowIndex, ci, e.target.value)} />
                 ) : (
-                  <Input id={`row-${ci}`} type={t} inputMode={t as any} value={row[ci] ?? ""} onChange={(e) => onCell(rowIndex, ci, e.target.value)} />
+                  <Input id={`row-${ci}`} type={t} inputMode={t as any} value={row[ci] ?? ""} onChange={(e) => onCell(rowIndex, ci, e.target.value)}
+                    aria-invalid={!!cellProblem(c, row[ci])} className={cn(cellProblem(c, row[ci]) && "border-destructive")} />
                 )}
+                {cellProblem(c, row[ci]) && <p className="text-xs text-destructive">{cellProblem(c, row[ci])}</p>}
               </div>
             );
           })}
         </div>
+        <PeopleList id="row-editor-people" />
         <DialogFooter><Button onClick={() => onOpenChange(false)}>Done</Button></DialogFooter>
       </DialogContent>
     </Dialog>

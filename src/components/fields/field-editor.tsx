@@ -29,14 +29,8 @@ const KIND_COLUMN: Record<string, "value_text" | "value_kv" | "value_links" | "v
   kv: "value_kv", links: "value_links", files: "value_links", table: "value_table",
 };
 
-export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export function phoneProblem(v: string): string | null {
-  const t = v.trim();
-  if (!t) return null;
-  if (/[^\d\s()+\-.]/.test(t)) return "Use digits, spaces, + and brackets only.";
-  if (t.replace(/\D/g, "").length < 8) return "That looks too short for a phone number.";
-  return null;
-}
+export { EMAIL_RE, phoneProblem } from "@/lib/contact-checks";
+import { EMAIL_RE, phoneProblem } from "@/lib/contact-checks";
 
 const isAddressField = (f: StructField) => /address/i.test(`${f.key} ${f.label}`);
 
@@ -68,6 +62,15 @@ export function LinkifiedText({ text }: { text: string }) {
   );
 }
 
+function InvalidValue({ value, problem }: { value: string; problem: string }) {
+  return (
+    <p className="text-sm inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+      <span className="break-all">{value}</span>
+      <span className="inline-flex items-center gap-1 text-xs text-destructive"><AlertTriangle className="size-3.5" aria-hidden /> {problem}</span>
+    </p>
+  );
+}
+
 const NotProvided = () => <p className="text-sm text-muted-foreground">Not provided yet</p>;
 
 export function FieldEditor({
@@ -96,7 +99,8 @@ export function FieldEditor({
   const domId = fieldDomId(field.refKey);
   const inputId = `${domId}-input`;
   const legacy = legacyData(field.kind, f.value);
-  const [touched, setTouched] = useState(false);
+  // Saved values are checked straight away; new typing is checked when you leave the box.
+  const [touched, setTouched] = useState(() => !!(f.value as any)?.value_text);
 
   const setText = (text: string, delay?: number) => f.set({ value_text: text }, delay);
 
@@ -128,12 +132,16 @@ export function FieldEditor({
         ) : <NotProvided />;
         break;
       case "phone":
-        body = text.trim()
+        body = text.trim() && phoneProblem(text)
+          ? <InvalidValue value={text.trim()} problem={phoneProblem(text)!} />
+          : text.trim()
           ? <a href={`tel:${text.replace(/[^\d+]/g, "")}`} className="text-sm text-primary underline underline-offset-2 inline-flex items-center gap-1"><Phone className="size-3.5" aria-hidden /> {text}</a>
           : <NotProvided />;
         break;
       case "email":
-        body = text.trim()
+        body = text.trim() && !EMAIL_RE.test(text.trim())
+          ? <InvalidValue value={text.trim()} problem="Not a valid email address." />
+          : text.trim()
           ? <a href={`mailto:${text.trim()}`} className="text-sm text-primary underline underline-offset-2 inline-flex items-center gap-1 break-all"><Mail className="size-3.5" aria-hidden /> {text.trim()}</a>
           : <NotProvided />;
         break;

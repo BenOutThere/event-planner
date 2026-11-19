@@ -22,6 +22,7 @@ import {
   WorkspaceProvider, type Change, type DocTextRow, type EventRow, type Pin, type WorkspaceCtx, type WorkspaceSearch,
 } from "./context";
 import { EventHeader } from "./event-header";
+import { PeopleProvider } from "@/components/fields/people-context";
 import { EventNav, currentSectionLabel } from "./event-nav";
 import { EventHome } from "./event-home";
 import { AreaPanel } from "./area-panel";
@@ -214,11 +215,13 @@ function WorkspaceInner(props: WorkspaceProps) {
     openAreaSettings: (a) => setSettingsArea(a),
   };
 
+  const peopleNames = useMemo(() => [...new Set([...profiles.values()])].sort((a, b) => a.localeCompare(b)), [profiles]);
   const nav = <EventNav />;
   const sectionLabel = currentSectionLabel(view, active, search);
 
   return (
     <WorkspaceProvider value={ctx}>
+      <PeopleProvider value={peopleNames}>
       <div className="min-h-full">
         <EventHeader
           backTo={props.backTo}
@@ -306,6 +309,7 @@ function WorkspaceInner(props: WorkspaceProps) {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      </PeopleProvider>
     </WorkspaceProvider>
   );
 }
