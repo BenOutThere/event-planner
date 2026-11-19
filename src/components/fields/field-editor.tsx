@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -157,7 +158,17 @@ export function FieldEditor({
   } else {
     switch (field.kind) {
       case "text":
-        body = field.multiline ? (
+        body = field.options?.length ? (
+          <Select value={text || undefined} disabled={disabled} onValueChange={(val) => f.set({ value_text: val === "__clear" ? "" : val }, 0)}>
+            <SelectTrigger id={inputId} className="sm:max-w-sm" aria-label={field.label}><SelectValue placeholder="Choose…" /></SelectTrigger>
+            <SelectContent>
+              {/* A saved value that's no longer a choice stays visible until someone changes it. */}
+              {text && !field.options.includes(text) && <SelectItem value={text}>{text}</SelectItem>}
+              {field.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+              {text && <SelectItem value="__clear" className="text-muted-foreground">Clear</SelectItem>}
+            </SelectContent>
+          </Select>
+        ) : field.multiline ? (
           <Textarea id={inputId} rows={3} value={text} disabled={disabled} onChange={(e) => setText(e.target.value)} onBlur={f.flush} placeholder="Add details…" />
         ) : (
           <Input id={inputId} value={text} disabled={disabled} onChange={(e) => setText(e.target.value)} onBlur={f.flush} />

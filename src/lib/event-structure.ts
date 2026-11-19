@@ -16,6 +16,8 @@ export type StructField = FieldDef & {
   refKey: string;
   help_text?: string | null;
   multiline?: boolean;
+  /** Fixed choices for a text field (shown as a dropdown). */
+  options?: string[] | null;
   scope: "template" | "event";
   archived?: boolean;
   templateFieldId?: string;
@@ -46,7 +48,7 @@ export type StructArea = {
 };
 
 type Tpl = { id: string; key: string; title: string; description: string | null; parent_id: string | null; sort_order: number; is_active: boolean; nav_group?: string | null };
-type TplField = { id: string; section_id: string; key: string; label: string; kind: string; sort_order: number; is_required: boolean; allow_na?: boolean; multiline?: boolean; help_text?: string | null; default_table?: unknown; table_rules?: unknown; archived_at?: string | null };
+type TplField = { id: string; section_id: string; key: string; label: string; kind: string; sort_order: number; is_required: boolean; allow_na?: boolean; multiline?: boolean; help_text?: string | null; default_table?: unknown; table_rules?: unknown; archived_at?: string | null; options?: unknown };
 type Extra = { id: string; title: string; description: string | null; sort_order: number; parent_section_id: string | null };
 type Custom = { id: string; section_id: string | null; extra_section_id: string | null; key: string; label: string; kind: string; sort_order: number; is_required: boolean; allow_na: boolean; multiline: boolean; help_text: string | null; default_table: unknown; table_rules: unknown };
 type Val = { section_id: string | null; extra_section_id: string | null; field_key: string } & Record<string, any>;
@@ -78,6 +80,7 @@ export function buildEventStructure(opts: {
       id: f.id, key: f.key, label: f.label, kind: f.kind as FieldKind,
       is_required: f.is_required, allow_na: !!f.allow_na, multiline: f.multiline !== false,
       help_text: f.help_text ?? null,
+      options: Array.isArray(f.options) ? (f.options as unknown[]).filter((o): o is string => typeof o === "string") : null,
       default_table: (f.default_table as TableValue | null) ?? null,
       table_rules: (f.table_rules as TableRules | null) ?? null,
       ref, refKey: refKey(ref), scope: "template", archived: !!f.archived_at, templateFieldId: f.id,

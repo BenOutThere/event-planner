@@ -253,7 +253,7 @@ function HelpPage() {
               <Faq q="Why can't I see a section other people mention?">It may be restricted to staff or event managers. Ask an admin.</Faq>
               <Faq q="Why can't I edit an event?">You have view access. Ask an admin or the event lead for edit access.</Faq>
               <Faq q="The event dates and the marketing description show different days.">They can mean different things (e.g. bump-in vs public days). Both are kept; nothing is changed automatically. Admins can add a “Public event dates” field.</Faq>
-              <Faq q="What does “OTPME” mean?">This label is waiting for administrator-approved wording.</Faq>
+              <Faq q="What does “Operating entity” mean?">The OTG company that runs the event, for example Out There Productions Major Events (formerly shown as “OTPME”). Admins manage the list of choices in the Template builder.</Faq>
               <Faq q="Where do uploaded files go?">They're stored with the event and follow the event's and the area's access rules.</Faq>
             </dl>
           </Section>

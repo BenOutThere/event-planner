@@ -30,6 +30,7 @@ import {
 } from "@/lib/admin.functions";
 import { TableField } from "@/components/fields/table-field";
 import { FIELD_KINDS, kindMeta, type FieldKindValue } from "@/lib/field-kinds";
+import { errorText, parseOptions } from "@/lib/labels";
 import { asTable, type TableValue } from "@/lib/coverage";
 import { cn } from "@/lib/utils";
 
@@ -100,7 +101,7 @@ function TemplateBuilder() {
   ]);
   const attempt = async (fn: () => Promise<unknown>, ok?: string) => {
     try { await fn(); if (ok) toast.success(ok); await invalidate(); }
-    catch (e: any) { toast.error(e?.message ?? "Couldn't save the template change"); }
+    catch (e: any) { toast.error(errorText(e, "Couldn't save the template change")); }
   };
 
   const needle = filter.trim().toLowerCase();
@@ -439,6 +440,8 @@ function FieldSettings({ field, first, last, fns, attempt, onMove, setConfirm }:
   const [expanded, setExpanded] = useState(false);
   const [label, setLabel] = useState(field.label);
   const [help, setHelp] = useState(field.help_text ?? "");
+  const savedOptions: string[] = Array.isArray(field.options) ? field.options : [];
+  const [optionsText, setOptionsText] = useState(savedOptions.join("\n"));
   const meta = kindMeta(field.kind);
   const Icon = meta.icon;
   const save = (patch: any, ok = "Saved to the shared template") => attempt(() => fns.updateField({ data: { id: field.id, patch } }), ok);
@@ -510,10 +513,22 @@ function FieldSettings({ field, first, last, fns, attempt, onMove, setConfirm }:
           <div className="flex flex-wrap gap-x-6 gap-y-3">
             <label className="flex items-center gap-2 text-sm"><Switch checked={!!field.is_required} onCheckedChange={(c) => save({ is_required: c })} /> Required</label>
             <label className="flex items-center gap-2 text-sm"><Switch checked={!!field.allow_na} onCheckedChange={(c) => save({ allow_na: c })} /> Allow “Not applicable”</label>
-            {field.kind === "text" && (
+            {field.kind === "text" && savedOptions.length === 0 && (
               <label className="flex items-center gap-2 text-sm"><Switch checked={field.multiline !== false} onCheckedChange={(c) => save({ multiline: c })} /> Long text (multiple lines)</label>
             )}
           </div>
+          {field.kind === "text" && (
+            <div className="space-y-1.5">
+              <Label htmlFor={`f-options-${field.id}`}>Choices (optional)</Label>
+              <Textarea id={`f-options-${field.id}`} rows={4} value={optionsText} onChange={(e) => setOptionsText(e.target.value)}
+                onBlur={() => {
+                  const next = parseOptions(optionsText);
+                  if (JSON.stringify(next) !== JSON.stringify(savedOptions)) void save({ options: next.length ? next : null }, next.length ? "Choices saved: this field is now a dropdown" : "Choices removed: this field is free text again");
+                }}
+                placeholder={"One per line, e.g.\nSummernats\nRocky Nats"} />
+              <p className="text-xs text-muted-foreground">With choices, people pick from a dropdown instead of typing. Information already saved is kept.</p>
+            </div>
+          )}
           {field.kind === "table" && <TableDefaults field={field} save={save} />}
           <div className="flex justify-end">
             <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={remove}><Trash2 className="size-4" /> Remove field</Button>

@@ -82,6 +82,8 @@ export const importUploadLink = createServerFn({ method: "POST" })
     return { bucket, path: link.path, token: link.token };
   });
 
+const KEEP_EXISTING = new Set<string>(["template_sections", "template_fields", "ops_categories", "event_categories", "event_templates"]);
+
 /** Writes one batch of rows exactly as they were (ids, dates, versions, history). */
 export const importRows = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -93,7 +95,12 @@ export const importRows = createServerFn({ method: "POST" })
     const { moveImportAdmin } = await import("@/integrations/supabase/client.server");
     // A role the new app already gave someone (for example the first admin,
     // set up automatically) is the same role, so keep the one that's there.
-    const opts = data.table === "user_roles" ? { onConflict: "user_id,role", ignoreDuplicates: true } : { onConflict: "id" };
+    // The shared template and categories are only added to, never overwritten,
+    // so changes made in the new app (e.g. R7's "Operating entity") survive a
+    // second import at switch-over.
+    const opts = data.table === "user_roles" ? { onConflict: "user_id,role", ignoreDuplicates: true }
+      : KEEP_EXISTING.has(data.table) ? { onConflict: "id", ignoreDuplicates: true }
+      : { onConflict: "id" };
     const { error } = await moveImportAdmin().from(data.table).upsert(rows, opts);
     if (error) throw new Error(`${data.table}: ${error.message}`);
     return { written: rows.length };

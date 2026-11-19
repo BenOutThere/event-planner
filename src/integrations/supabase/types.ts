@@ -1440,6 +1440,7 @@ export type Database = {
           kind: string
           label: string
           multiline: boolean
+          options: Json | null
           section_id: string
           sort_order: number
           table_rules: Json | null
@@ -1456,6 +1457,7 @@ export type Database = {
           kind: string
           label: string
           multiline?: boolean
+          options?: Json | null
           section_id: string
           sort_order?: number
           table_rules?: Json | null
@@ -1472,6 +1474,7 @@ export type Database = {
           kind?: string
           label?: string
           multiline?: boolean
+          options?: Json | null
           section_id?: string
           sort_order?: number
           table_rules?: Json | null
