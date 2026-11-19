@@ -1669,6 +1669,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      copy_event: {
+        Args: { _source: string; _name: string; _start: string; _end?: string; _areas?: string[] }
+        Returns: string
+      }
       ensure_member: { Args: never; Returns: boolean }
       event_directory: {
         Args: never

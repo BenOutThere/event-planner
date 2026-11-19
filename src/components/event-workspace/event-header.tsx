@@ -17,7 +17,7 @@ import {
 import {
   ArrowLeft, CalendarDays, ChevronsUpDown, MapPin, MoreHorizontal, Search, Info, Link2, Settings2, Trash2, Users, X,
   Loader2, AlertTriangle, CheckCircle2, RotateCw, Eye, Check, Archive, ArchiveRestore, Lightbulb, UserCog,
-  LayoutList,
+  LayoutList, CopyPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { VARIANTS, variantLabel, type Variant } from "@/lib/variants";
@@ -26,6 +26,8 @@ import { SETTABLE_STAGES, STAGE_INFO, stagePrompt, type EventStage } from "@/lib
 import { formatAuRange } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "./context";
+import { CopyEventDialog } from "./copy-event-dialog";
+import { useAuth } from "@/hooks/use-auth";
 import { AccessDialog } from "./access-dialog";
 import { PersonPicker, type PersonValue } from "@/components/fields/person-picker";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -158,6 +160,9 @@ export function EventHeader({
   const [accessOpen, setAccessOpen] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [leadOpen, setLeadOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const auth = useAuth();
+  const canCreate = auth.isAdmin || auth.roles.includes("lead") || auth.roles.includes("member");
   const [dismissedPrompt, setDismissedPrompt] = useState<string | null>(null);
   const info = STAGE_INFO[event.stage] ?? STAGE_INFO.draft;
   const prompt = canManage && !preview ? stagePrompt(event.stage, event.proposed_date, event.end_date, today) : null;
@@ -259,6 +264,9 @@ export function EventHeader({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuItem onSelect={copyEventLink}><Link2 className="size-4" /> Copy link to event</DropdownMenuItem>
+                {canCreate && !asStakeholder && (
+                  <DropdownMenuItem onSelect={() => setCopyOpen(true)}><CopyPlus className="size-4" /> Copy to a new event…</DropdownMenuItem>
+                )}
                 {(canManage || (isAdmin && !archived)) && (
                   <DropdownMenuItem onSelect={() => setAccessOpen(true)}><Users className="size-4" /> People with access…</DropdownMenuItem>
                 )}
@@ -336,6 +344,7 @@ export function EventHeader({
 
       {accessOpen && <AccessDialog open={accessOpen} onOpenChange={setAccessOpen} />}
       {leadOpen && <LeadDialog open={leadOpen} onOpenChange={setLeadOpen} />}
+      <CopyEventDialog source={event} open={copyOpen} onOpenChange={setCopyOpen} />
 
       <AlertDialog open={confirmArchive} onOpenChange={setConfirmArchive}>
         <AlertDialogContent>

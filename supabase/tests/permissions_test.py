@@ -113,6 +113,15 @@ CHECKS = [
  ('Directory', 'Add a contact', "insert into eventplanner.directory_contacts (name, phone) values ('Jo Supplier', '0412 345 678') returning 1", CREATORS),
  ('Directory', 'Change a contact', "update eventplanner.directory_contacts set phone='0400 000 000' returning 1", CREATORS, DIRECTORY),
  ('Directory', 'Delete a contact', "delete from eventplanner.directory_contacts returning 1", {'Admin'}, DIRECTORY),
+ ('Copy', 'Copy Event A to a new event', f"do $$ begin perform set_config('t.copy', eventplanner.copy_event('{A}', 'Event A 2028', '2028-02-24')::text, true); end $$; select 1", lambda p: 1 if p in CREATORS & READ_A else 'blocked'),
+ ('Copy', 'Copy Event B (no access for some)', f"do $$ begin perform eventplanner.copy_event('{B}', 'Event B 2028', '2028-03-10'); end $$; select 1", lambda p: 1 if p in CREATORS & READ_B else 'blocked'),
+ ('Copy', 'Copied information only from areas they can read', f"do $$ begin perform set_config('t.copy', eventplanner.copy_event('{A}', 'Event A 2028', '2028-02-24')::text, true); end $$; select count(*) from eventplanner.event_field_values where event_id = current_setting('t.copy')::uuid and value_text ilike '%secretword%'",
+   lambda p: sum(visible(p, a) for a in (O, S, M)) if p in CREATORS & READ_A else 'blocked'),
+ ('Copy', 'Copy is a Draft led by the person copying', f"do $$ begin perform set_config('t.copy', eventplanner.copy_event('{A}', 'Event A 2028', '2028-02-24')::text, true); end $$; select count(*) from eventplanner.events where id = current_setting('t.copy')::uuid and stage = 'draft' and lead_user_id = auth.uid()",
+   lambda p: 1 if p in CREATORS & READ_A else 'blocked'),
+ ('Copy', 'Copy keeps a per-event area restriction', f"do $$ begin perform set_config('t.copy', eventplanner.copy_event('{A}', 'Event A 2028', '2028-02-24')::text, true); end $$; select count(*) from eventplanner.event_area_meta where event_id = current_setting('t.copy')::uuid and area_id = '{O}' and restricted_to = 'managers'",
+   lambda p: 1 if p in CREATORS & READ_A else 'blocked', f"insert into eventplanner.event_area_meta (event_id, area_id, restricted_to) values ('{A}', '{O}', 'managers');"),
+ ('Copy', 'Copy needs a name and start date', f"do $$ begin perform eventplanner.copy_event('{A}', 'Untitled event', '2028-02-24'); end $$; select 1", lambda p: 'blocked'),
 ]
 
 def run(person, sql, setup=''):
@@ -124,6 +133,8 @@ def run(person, sql, setup=''):
     out = [l for l in p.stdout.split('\n') if l.strip()]
     if sql.lstrip().startswith('select'):
         return out[0] if out else '?'
+    if sql.lstrip().startswith('do '):  # a DO block, then a select that reports the result
+        return out[-1] if out else '?'
     return 'allowed' if out else 'blocked'
 
 def expected(exp, person, sql):

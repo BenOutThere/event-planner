@@ -9,9 +9,13 @@ import { Label } from "@/components/ui/label";
 import { DateField } from "@/components/fields/date-field";
 import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { checkDateSequence } from "@/lib/dates";
+import { checkDateSequence, formatAuRange } from "@/lib/dates";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { VARIANTS, type Variant } from "@/lib/variants";
+import { useQuery } from "@tanstack/react-query";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CopyEventDialog, type CopySource } from "@/components/event-workspace/copy-event-dialog";
+import { displayEventName } from "@/lib/event-name";
 
 export const Route = createFileRoute("/_authenticated/events/new")({
   head: () => ({
@@ -113,6 +117,7 @@ function NewEvent() {
         <p className="text-sm text-muted-foreground mt-1">Start with the basics. You can add everything else inside the event.</p>
       </div>
 
+      <CopyFromPrevious />
       <form onSubmit={create} className="rounded-xl border bg-card p-5 space-y-4" noValidate>
         <div className="space-y-1.5">
           <Label htmlFor="ev-name">Event name <span className="text-destructive" aria-hidden>*</span></Label>
@@ -159,6 +164,29 @@ function NewEvent() {
           </Button>
         </div>
       </form>
+    </div>
+  );
+}
+
+/** R18: start from a previous edition instead of a blank event. */
+function CopyFromPrevious() {
+  const events = useQuery({
+    queryKey: ["events-for-copy"],
+    queryFn: async () => (await supabase.from("events").select("id, name, proposed_date, end_date").order("proposed_date", { ascending: false })).data ?? [],
+  });
+  const [source, setSource] = useState<CopySource | null>(null);
+  if (!events.data?.length) return null;
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-2">
+      <p className="text-sm font-medium">Running an event again?</p>
+      <p className="text-xs text-muted-foreground">Copy a previous edition: its structure, who's responsible and the information you choose come across. Dates, files and reviews start fresh.</p>
+      <Select value="" onValueChange={(id) => { const e = events.data!.find((x) => x.id === id); if (e) setSource({ ...e, name: displayEventName(e.name) }); }}>
+        <SelectTrigger aria-label="Copy a previous event"><SelectValue placeholder="Copy a previous event…" /></SelectTrigger>
+        <SelectContent>
+          {events.data.map((e) => <SelectItem key={e.id} value={e.id}>{displayEventName(e.name)} · {formatAuRange(e.proposed_date, e.end_date)}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <CopyEventDialog source={source} open={!!source} onOpenChange={(o) => { if (!o) setSource(null); }} />
     </div>
   );
 }
