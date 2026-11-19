@@ -17,7 +17,7 @@ import { linkHost, validateUrl } from "@/lib/links";
 import { refKey } from "@/lib/event-structure";
 import { openStoredFile } from "@/components/fields/files-field";
 import { useWorkspace } from "./context";
-import { attentionItems, CoverageSummary } from "./attention-view";
+import { attentionItems, CoverageSummary, ReadinessSummary } from "./attention-view";
 
 function Card({ title, icon: Icon, action, children, className }: { title: string; icon: React.ComponentType<{ className?: string }>; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
@@ -251,8 +251,9 @@ export function EventHome() {
       <WorkspaceLinks />
 
       {canEdit && (
-        <Card title="Planning (editors)" icon={ListTodo} action={<Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => w.go({ view: "attention" })}>{attention ? `${attention} item${attention === 1 ? "" : "s"} need attention` : "Checklist"} <ArrowRight className="size-3.5" /></Button>}>
-          <CoverageSummary compact />
+        <Card title="Readiness (editors)" icon={ListTodo} action={<Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => w.go({ view: "attention" })}>{attention ? `To do (${attention})` : "To do"} <ArrowRight className="size-3.5" /></Button>}>
+          <ReadinessSummary compact />
+          <div className="mt-3 pt-3 border-t"><CoverageSummary compact /></div>
         </Card>
       )}
     </div>

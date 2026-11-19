@@ -1,30 +1,59 @@
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, CheckCircle2, Clock, Info, Settings2, Wrench } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Info, ListTodo, Mail, Settings2, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { areaFields, type StructArea, type StructField } from "@/lib/event-structure";
-import { coverageOf, fieldState } from "@/lib/coverage";
-import { reviewState } from "@/lib/currency";
+import { areaFields } from "@/lib/event-structure";
+import { coverageOf } from "@/lib/coverage";
+import { daysToGoLabel, RAG_INFO, readiness, todoBreakdown, todoCounts, todoItems, type TodoItem } from "@/lib/readiness";
+import { cn } from "@/lib/utils";
 import { useWorkspace, type WorkspaceCtx } from "./context";
 
-export type AttentionItem =
-  | { kind: "required"; area: StructArea; field: StructField; detail?: string }
-  | { kind: "review"; area: StructArea; detail: string }
-  | { kind: "unconfigured"; area: StructArea };
+export type AttentionItem = TodoItem;
 
+/** Everything on the event's To do list (see src/lib/readiness.ts). */
 export function attentionItems(w: Pick<WorkspaceCtx, "areas" | "getValue" | "meta" | "today" | "areaUpdated">): AttentionItem[] {
-  const out: AttentionItem[] = [];
-  for (const area of w.areas) {
-    const fields = areaFields(area);
-    if (!fields.length) { out.push({ kind: "unconfigured", area }); continue; }
-    for (const f of fields) {
-      const s = fieldState(f, w.getValue(f));
-      if (s.required && !s.requirementMet) out.push({ kind: "required", area, field: f, detail: s.detail });
-    }
-    const r = reviewState(w.meta.get(area.id), w.areaUpdated(area).at, w.today);
-    if (r.needsReview) out.push({ kind: "review", area, detail: r.label });
-  }
-  return out;
+  return todoItems({ areas: w.areas, getValue: w.getValue, meta: w.meta, today: w.today, areaUpdatedAt: (a) => w.areaUpdated(a).at });
+}
+
+/** Readiness for this event, from the same items as the To do list. */
+export function useReadiness() {
+  const w = useWorkspace();
+  return readiness({
+    areas: w.areas, getValue: w.getValue, meta: w.meta, today: w.today, areaUpdatedAt: (a) => w.areaUpdated(a).at,
+    start: w.event.proposed_date, end: w.event.end_date, stage: w.event.stage,
+  });
+}
+
+export function ReadinessSummary({ compact = false }: { compact?: boolean }) {
+  const w = useWorkspace();
+  const r = useReadiness();
+  const counts = todoCounts(attentionItems(w));
+  const days = daysToGoLabel(r.daysToGo);
+  const { required, setUp, reviews } = r.parts;
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="text-sm font-medium">Readiness {r.score ?? 0}%</span>
+        <span className={cn("rounded border px-1.5 py-px text-[11px] font-medium", RAG_INFO[r.rag].tone)}>{r.label}</span>
+        {days && <span className="text-xs text-muted-foreground">{days}</span>}
+        <Progress value={r.score ?? 0} className={cn("h-1.5 w-32", RAG_INFO[r.rag].bar)} aria-label={`Readiness ${r.score ?? 0}%`} />
+      </div>
+      <ul className="text-xs text-muted-foreground space-y-0.5">
+        <li>Required fields with information: {required.total ? `${required.met} of ${required.total}` : "none set as required"}</li>
+        <li>Areas set up: {setUp.done} of {setUp.total}</li>
+        <li>Areas with reviews up to date: {reviews.current} of {reviews.total}</li>
+      </ul>
+      <p className="text-xs flex items-start gap-1.5">
+        {counts.total === 0
+          ? <><CheckCircle2 className="size-3.5 text-success mt-px shrink-0" aria-hidden /> Nothing on the To do list.</>
+          : <><ListTodo className="size-3.5 mt-px shrink-0" aria-hidden /> {counts.total} to do: {todoBreakdown(counts).join(", ")}.</>}
+      </p>
+      {!compact && (
+        <p className="text-xs text-muted-foreground flex items-start gap-1.5"><Info className="size-3.5 mt-px shrink-0" aria-hidden />
+          Readiness weighs required information (half), areas set up (a quarter) and up-to-date reviews (a quarter), and expects more as the event gets closer. It never changes the event status.</p>
+      )}
+    </div>
+  );
 }
 
 export function CoverageSummary({ compact = false }: { compact?: boolean }) {
@@ -59,13 +88,15 @@ export function AttentionView() {
   const required = items.filter((i) => i.kind === "required") as Extract<AttentionItem, { kind: "required" }>[];
   const reviews = items.filter((i) => i.kind === "review") as Extract<AttentionItem, { kind: "review" }>[];
   const unconfigured = items.filter((i) => i.kind === "unconfigured");
+  const contacts = items.filter((i) => i.kind === "contact") as Extract<AttentionItem, { kind: "contact" }>[];
 
   return (
     <section aria-labelledby="attention-title" className="space-y-4">
       <div className="rounded-xl border bg-card p-4 sm:p-5">
-        <h2 id="attention-title" className="text-xl font-display font-semibold">Needs attention</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Editor checklist for this event. Only people who can edit see this.</p>
-        <div className="mt-3"><CoverageSummary /></div>
+        <h2 id="attention-title" className="text-xl font-display font-semibold">To do</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Everything still open for this event. Only people who can edit see this.</p>
+        <div className="mt-3"><ReadinessSummary /></div>
+        <div className="mt-3 pt-3 border-t"><CoverageSummary compact /></div>
       </div>
 
       <Group title="Required information missing" icon={AlertTriangle} count={required.length} empty="Every configured required field has information.">
@@ -79,6 +110,13 @@ export function AttentionView() {
         {reviews.map((i) => (
           <Row key={i.area.id} title={i.area.title} sub={i.detail}
             action={<Button size="sm" variant="outline" onClick={() => w.openArea(i.area.id)}>Open to review</Button>} />
+        ))}
+      </Group>
+
+      <Group title="Contact details to check" icon={Mail} count={contacts.length} empty="Every email address and phone number looks right.">
+        {contacts.map((i, n) => (
+          <Row key={`${i.field.refKey}-${i.row ?? "f"}-${n}`} title={i.field.label} sub={`${i.area.title} · ${i.detail}`}
+            action={<Button size="sm" variant="outline" onClick={() => w.openArea(i.area.id, { field: i.field.refKey, row: i.row, edit: true })}>Fix</Button>} />
         ))}
       </Group>
 

@@ -29,7 +29,7 @@ const sections = [
   { id: "ops", label: "Operations plans", icon: ClipboardList },
   { id: "currency", label: "Ownership & reviews", icon: Clock },
   { id: "status", label: "Event status & archiving", icon: Archive },
-  { id: "attention", label: "Needs attention", icon: ListTodo },
+  { id: "attention", label: "To do and readiness", icon: ListTodo },
   { id: "tables", label: "Tables", icon: TableIcon },
   { id: "saving", label: "How saving works", icon: Save },
   { id: "customise", label: "Adding fields to an event", icon: Pencil },
@@ -154,7 +154,7 @@ function HelpPage() {
               <li><strong>Mark reviewed</strong> records that someone checked the section is current. Editing never marks a section reviewed.</li>
               <li>After a review, any later change shows <em>Changed since review</em>. After the review date, it shows <em>Review overdue</em>.</li>
               <li><strong>Change history</strong> (⋯ menu) lists recent changes; quick edits by the same person are grouped.</li>
-              <li>Event status, planning coverage and review status are separate — none changes the others.</li>
+              <li>Event status, readiness, planning coverage and review status are separate — none changes the others.</li>
             </ul>
           </Section>
 
@@ -169,9 +169,15 @@ function HelpPage() {
             </ul>
           </Section>
 
-          <Section id="attention" icon={ListTodo} title="Needs attention (editors)">
-            <p>A checklist of configured required fields still without information, sections overdue for review or changed since review, and sections not set up yet — each with a button to fix it.</p>
-            <p><strong>Planning coverage</strong> is the share of fields with information entered. “All configured required fields have information” means only that — it doesn't mean the event information is complete, checked or operationally ready.</p>
+          <Section id="attention" icon={ListTodo} title="To do and readiness (editors)">
+            <p><strong>To do</strong> (left-hand list) is everything still open for the event, each with a button to fix it: required information missing, areas not set up, reviews due or changed since review, and email addresses or phone numbers that don't look right. The count always comes with its breakdown, e.g. “4 to do: 4 areas not set up”.</p>
+            <p><strong>Readiness</strong> is one score for how far planning has got. It weighs required fields with information (half), areas set up (a quarter) and areas with up-to-date reviews (a quarter). It's shown with the days to go and a state that expects more as the event gets closer:</p>
+            <ul>
+              <li><strong>On track</strong> (green), <strong>Behind</strong> (amber) or <strong>At risk</strong> (red). More than 6 months out, 25% is on track; within 2 months it takes 75%; in the last 2 weeks, 90%.</li>
+              <li>Events that are on now or finished aren't graded.</li>
+              <li>The Events page shows each event's days to go, readiness and To do count (for people who can edit it).</li>
+            </ul>
+            <p><strong>Planning coverage</strong> is still shown underneath: the share of all fields with information entered. Neither readiness nor coverage means the information has been checked or the event is operationally ready, and neither changes the event status.</p>
           </Section>
 
           <Section id="tables" icon={TableIcon} title="Tables">
@@ -242,7 +248,7 @@ function HelpPage() {
             <ul>
               <li>Area list, incomplete filter, continue where you left off → left-hand list; <em>Only fields still to fill</em> is in edit mode.</li>
               <li>Search this event → search box at the top (now with All events, result types and inside-document search).</li>
-              <li>Planning coverage and missing required items → <em>Needs attention</em> and the Planning card on Event Home.</li>
+              <li>Readiness, planning coverage and missing items → <em>To do</em> and the Readiness card on Event Home.</li>
               <li>Status, archive or restore, copy event link, delete event → ⋯ menu at the top right.</li>
               <li>Field and area links → link icon on a field; ⋯ → <em>Copy link to this section</em>.</li>
               <li>Files and links → still in their fields; also listed together in <em>Documents &amp; links</em>.</li>
