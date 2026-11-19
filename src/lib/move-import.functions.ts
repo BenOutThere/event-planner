@@ -91,7 +91,10 @@ export const importRows = createServerFn({ method: "POST" })
     const rows = JSON.parse(data.json);
     if (!Array.isArray(rows) || !rows.length) return { written: 0 };
     const { moveImportAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await moveImportAdmin().from(data.table).upsert(rows, { onConflict: "id" });
+    // A role the new app already gave someone (for example the first admin,
+    // set up automatically) is the same role, so keep the one that's there.
+    const opts = data.table === "user_roles" ? { onConflict: "user_id,role", ignoreDuplicates: true } : { onConflict: "id" };
+    const { error } = await moveImportAdmin().from(data.table).upsert(rows, opts);
     if (error) throw new Error(`${data.table}: ${error.message}`);
     return { written: rows.length };
   });
