@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ import { formatAuTimestamp, RESTRICTION_INFO, reviewState } from "@/lib/currency
 import { FieldEditor } from "@/components/fields/field-editor";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "./context";
+import { InlineField, escapeBelongsToPopup } from "./inline-field";
 
 const DATE_KEYS = ["bump_in_start_date", "event_start_date", "event_end_date", "bump_out_end_date"] as const;
 
@@ -41,6 +42,23 @@ export function AreaPanel({ area, highlight }: { area: StructArea; highlight: { 
   const missingRequired = fields.filter((f) => { const s = fieldState(f, w.getValue(f)); return s.required && !s.requirementMet; }).length;
 
   const linkFor = w.preview ? undefined : (rk: string) => w.absoluteLink({ area: area.id, field: rk });
+
+  // R15: click a field to edit just that field. It saves as you type; Escape or Done finishes.
+  const [inlineField, setInlineField] = useState<string | null>(null);
+  useEffect(() => { setInlineField(null); }, [area.id, editing]);
+  const finishInline = async () => { await saver.flush(); setInlineField(null); };
+  const finishSection = async () => { await saver.flush(); w.go({ edit: undefined, incomplete: undefined }, { replace: true }); };
+  // Escape also finishes section editing, unless it's closing a menu, picker or dialog.
+  useEffect(() => {
+    if (!editing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented || escapeBelongsToPopup(e)) return;
+      void finishSection();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing]);
 
   async function copyAreaLink() {
     try { await navigator.clipboard.writeText(w.absoluteLink({ area: area.id })); toast.success("Link to this section copied"); }
@@ -114,12 +132,12 @@ export function AreaPanel({ area, highlight }: { area: StructArea; highlight: { 
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {w.canEdit && (editing ? (
-            <Button size="sm" onClick={async () => { await saver.flush(); w.go({ edit: undefined, incomplete: undefined }, { replace: true }); }}>
+            <Button size="sm" onClick={finishSection} title="Or press Escape">
               <Check className="size-4" /> Done editing
             </Button>
           ) : (
-            <Button size="sm" variant="default" onClick={() => w.go({ edit: true }, { replace: true })}>
-              <Pencil className="size-4" /> Edit section
+            <Button size="sm" variant="outline" onClick={() => w.go({ edit: true }, { replace: true })} title="Or click any field to edit just that one">
+              <Pencil className="size-4" /> Edit all fields
             </Button>
           ))}
           {w.canEdit && !w.preview && fields.length > 0 && review.reason !== "reviewed" && (
@@ -182,7 +200,7 @@ export function AreaPanel({ area, highlight }: { area: StructArea; highlight: { 
           const dateWarnings = w.canEdit && s.fields.some((f) => (DATE_KEYS as readonly string[]).includes(f.key))
             ? checkDateSequence(Object.fromEntries(s.fields.filter((f) => (DATE_KEYS as readonly string[]).includes(f.key)).map((f) => [f.key, w.getValue(f)?.value_text ?? null])))
             : [];
-          const nothing = !editing && s.shown.length > 0 && !s.shown.some((f) => hasInformation(f, w.getValue(f)) || w.getValue(f)?.not_applicable || f.refKey === highlight?.field);
+          const nothing = !editing && !w.canEdit && s.shown.length > 0 && !s.shown.some((f) => hasInformation(f, w.getValue(f)) || w.getValue(f)?.not_applicable || f.refKey === highlight?.field);
           return (
             <div key={s.id} className={cn("px-4 sm:px-6", editing ? "py-4" : "py-3")}>
               {area.hasSubsections && (
@@ -208,18 +226,26 @@ export function AreaPanel({ area, highlight }: { area: StructArea; highlight: { 
                 <div className={cn(editing ? "space-y-1" : "grid gap-x-8 sm:grid-cols-2")}>
                   {s.shown.map((f) => (
                     <div key={f.refKey} className={cn(!editing && (f.kind === "table" || f.kind === "files" || f.kind === "links" || f.kind === "kv" || (f.kind === "text" && f.multiline)) && "sm:col-span-2")}>
+                      <InlineField
+                        label={f.label}
+                        enabled={w.canEdit && !editing}
+                        active={inlineField === f.refKey}
+                        onStart={() => { void saver.flush(); setInlineField(f.refKey); }}
+                        onDone={finishInline}
+                      >
                       <FieldEditor
                         field={f}
                         eventId={w.eventId}
                         areaId={area.id}
                         canEdit={w.canEdit}
-                        mode={editing ? "edit" : "read"}
-                        showHelp={editing}
+                        mode={editing || inlineField === f.refKey ? "edit" : "read"}
+                        showHelp={editing || inlineField === f.refKey}
                         highlighted={highlight?.field === f.refKey && highlight.row === undefined}
                         highlightRow={highlight?.field === f.refKey ? highlight.row ?? null : null}
                         linkFor={linkFor}
                         hideLabel={s.shown.length === 1 && [area.title, s.title].some((t) => t.trim().toLowerCase() === f.label.trim().toLowerCase())}
                       />
+                      </InlineField>
                     </div>
                   ))}
                 </div>
@@ -262,3 +288,4 @@ function HistoryDialog({ area, open, onOpenChange }: { area: StructArea; open: b
     </Dialog>
   );
 }
+

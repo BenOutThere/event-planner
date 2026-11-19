@@ -66,7 +66,7 @@ function HelpPage() {
               <li>Open <strong>Events</strong> and select an event. You land on its <strong>Event Home</strong>.</li>
               <li>Use the list on the left to open any section (on a phone, tap the section button next to search). For people who can edit, the dot beside each area shows how complete it is: an empty ring (nothing yet), half filled (some fields), full green (every field) or red (required information missing). Select a group heading to fold it away; the menu remembers. Event Home offers <em>Pick up where you left off</em> to reopen the last area you were in.</li>
               <li>Press <kbd className="rounded border px-1 text-xs">/</kbd> (or Ctrl/⌘ + K) to jump to <strong>Search</strong> at the top.</li>
-              <li>If you can edit, select <strong>Edit section</strong> to change information. Changes save automatically.</li>
+              <li>If you can edit, click any field (or its pencil) to change it. Changes save as you type; press <kbd className="rounded border px-1 text-xs">Esc</kbd> or <strong>Done</strong> when you're finished.</li>
             </ol>
             <p>The main app menu folds away inside an event to give the content more room — select the menu icon at the top left to open it.</p>
             <p>You sign in once at the OTG Control Centre and open Event Planner from its tile. Forgotten passwords are reset there too.</p>
@@ -109,7 +109,8 @@ function HelpPage() {
               <li>Sections open in a clean <strong>reading view</strong>: plain text, tappable phone numbers and emails, <em>Open map</em> for addresses, and Open/Preview/Download for documents.</li>
               <li>Contact tables can be sorted by selecting a column heading, and filtered when they have more than five rows. On a phone, rows show as labelled cards.</li>
               <li>Empty states are specific: <em>Not provided yet</em> (no information), <em>Not applicable for this event</em> (marked N/A), and <em>Not set up yet</em> (the section has no fields).</li>
-              <li>Editors see <strong>Edit section</strong>. In edit mode you get inputs, table tools, help text, required markers (*), <em>Only fields still to fill</em>, and <em>Add field or sub-section</em>. Select <strong>Done editing</strong> to return to reading view.</li>
+              <li>Editors can click a single field to edit just that one, then press <kbd className="rounded border px-1 text-xs">Esc</kbd> or <strong>Done</strong>. Links, buttons and table tools inside a field still work as normal; use the field's pencil to edit a table.</li>
+              <li>To work through a whole section, select <strong>Edit all fields</strong>. In edit mode you get inputs, table tools, help text, required markers (*), <em>Only fields still to fill</em>, and <em>Add field or sub-section</em>. Select <strong>Done editing</strong> or press <kbd className="rounded border px-1 text-xs">Esc</kbd> to return to reading view.</li>
               <li>Each field and section has a direct link (link icon, or <em>Copy link to this section</em> in the ⋯ menu).</li>
             </ul>
           </Section>
