@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { assignOpsDocToEvent } from "@/lib/ops-files";
+import { displayEventName } from "@/lib/event-name";
 
 export type OpsCategory = { id: string; name: string; sort_order: number };
 export const NO_CATEGORY = "none";
@@ -117,7 +118,7 @@ export function LinkEventDialog({ open, onOpenChange, doc, onMoved }: {
             <SelectTrigger id="ops-move-event"><SelectValue placeholder="Choose an event" /></SelectTrigger>
             <SelectContent className="max-h-72">
               <SelectItem value={COMPANY}>Company-wide (all staff)</SelectItem>
-              {(events.data ?? []).map((e) => <SelectItem key={e.id} value={e.id} disabled={e.taken}>{e.name}{e.taken ? " (already has a plan)" : ""}</SelectItem>)}
+              {(events.data ?? []).map((e) => <SelectItem key={e.id} value={e.id} disabled={e.taken}>{displayEventName(e.name)}{e.taken ? " (already has a plan)" : ""}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

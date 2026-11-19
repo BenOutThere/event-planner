@@ -4,7 +4,7 @@
 - Schema changes are new files in `supabase/migrations/`; `supabase/tests/permissions_test.py` must still pass. `supabase/legacy/` holds the old Lovable migrations for reference only.
 - AI answers use Claude through `src/lib/ai.server.ts` (`ANTHROPIC_API_KEY`); keep them grounded in retrieved plan text with section/page citations.
 
-- The downloadable user guide PDF is served from `public/out-there-user-guide.pdf` and linked from the Help page; regenerate and replace it whenever app features change, so the in-app guide and PDF stay in sync.
+- The downloadable user guide PDF is served from `public/out-there-user-guide.pdf` and linked from the Help page; regenerate it with `npm run guide:pdf` (renders the Help page with Chromium via `scripts/user-guide-pdf.mjs`) whenever app features change, so the in-app guide and PDF stay in sync.
 - Event content saves only through the autosave manager in `src/hooks/use-event-saver.tsx` (debounced, per-field version check, keeps failed edits); never add per-field direct writes or a separate "save" button for event values, so status and conflict handling stay correct.
 - Event values are keyed by (section id or event-only sub-section id) + field key; never change a field's key on rename/reorder, so saved values stay attached.
 - Template sections/fields with saved values are archived (`is_active=false` / `archived_at`), never hard-deleted; a DB trigger blocks deleting sections with values because the value FK cascades.

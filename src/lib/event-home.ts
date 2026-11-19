@@ -1,3 +1,4 @@
+import { conflictingMentions } from "@/lib/date-mentions";
 // Event Home summary. Built entirely from the event's saved fields — there is
 // no second copy of event details to maintain.
 
@@ -115,4 +116,25 @@ export const HOME_KEYS = {
   bumpIn: ["bump_in_start_date"],
   bumpOut: ["bump_out_end_date"],
   publicDates: ["public_event_dates", "dates_open_to_the_public"],
+  publicStart: ["public_start_date"],
+  publicEnd: ["public_end_date"],
 };
+
+/**
+ * R6: public vs event dates, and any dates in the description that disagree.
+ * The description is checked against the public dates when they're set,
+ * otherwise against the event dates.
+ */
+export function dateCheck(areas: StructArea[], getValue: (f: StructField) => any, fallback?: { start?: string | null; end?: string | null }) {
+  const startLoc = findField(areas, HOME_KEYS.start);
+  const descLoc = findField(areas, HOME_KEYS.description);
+  const start = textOf(startLoc, getValue) ?? fallback?.start ?? null;
+  const end = textOf(findField(areas, HOME_KEYS.end), getValue) ?? fallback?.end ?? null;
+  const publicStart = textOf(findField(areas, HOME_KEYS.publicStart), getValue);
+  const publicEnd = textOf(findField(areas, HOME_KEYS.publicEnd), getValue);
+  const hasPublic = !!publicStart;
+  const refStart = hasPublic ? publicStart : start;
+  const refEnd = hasPublic ? (publicEnd ?? publicStart) : end;
+  const conflicts = descLoc ? conflictingMentions(textOf(descLoc, getValue), refStart, refEnd) : [];
+  return { start, end, publicStart, publicEnd, hasPublic, conflicts, descLoc, startLoc, reference: hasPublic ? "public" as const : "event" as const };
+}

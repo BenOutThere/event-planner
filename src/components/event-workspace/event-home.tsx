@@ -5,19 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ArrowRight, CalendarDays, ExternalLink, FileText, FolderOpen, Info, Link2, ListTodo, Mail, MapPin, Pencil, Phone, Pin, PinOff, Plus,
-  Trash2, User, History as HistoryIcon, LayoutGrid,
+  Trash2, User, History as HistoryIcon, LayoutGrid, AlertTriangle,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { formatAuDate, formatAuRange } from "@/lib/dates";
-import { contactsFrom, findField, HOME_KEYS, mapUrl, quickAccess, textOf } from "@/lib/event-home";
+import { contactsFrom, dateCheck, findField, HOME_KEYS, mapUrl, quickAccess, textOf } from "@/lib/event-home";
 import { collectDocuments, type DocItem } from "@/lib/documents";
 import { formatAuTimestamp } from "@/lib/currency";
 import { linkHost, validateUrl } from "@/lib/links";
 import { refKey } from "@/lib/event-structure";
 import { openStoredFile } from "@/components/fields/files-field";
 import { useWorkspace } from "./context";
-import { attentionItems, CoverageSummary } from "./attention-view";
+import { attentionItems, CoverageSummary, ReadinessSummary } from "./attention-view";
 
 function Card({ title, icon: Icon, action, children, className }: { title: string; icon: React.ComponentType<{ className?: string }>; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
@@ -52,6 +52,9 @@ export function EventHome() {
   const bumpOut = textOf(dateLoc.bumpOut, getValue);
   const publicLoc = loc(HOME_KEYS.publicDates);
   const publicDates = textOf(publicLoc, getValue);
+  const publicStartLoc = loc(HOME_KEYS.publicStart);
+  const dc = dateCheck(areas, getValue, { start: event.proposed_date, end: event.end_date });
+  const publicRange = dc.publicStart ? formatAuRange(dc.publicStart, dc.publicEnd ?? dc.publicStart) : publicDates;
   const overview = areas.find((a) => a.key === "overview") ?? descLoc?.area ?? dateLoc.start?.area ?? null;
   const contacts = contactsFrom(areas, getValue, 8);
   const contactArea = contacts[0]?.loc.area ?? areas.find((a) => /people|contact/i.test(a.navGroup ?? "")) ?? null;
@@ -122,17 +125,44 @@ export function EventHome() {
               <Popover>
                 <PopoverTrigger asChild><Button size="icon" variant="ghost" className="size-7" aria-label="About these dates"><Info className="size-3.5" /></Button></PopoverTrigger>
                 <PopoverContent className="w-80 text-xs space-y-2">
-                  <p><strong>Event dates</strong> are the Event start and end dates in Event Overview. <strong>Operational dates</strong> are bump-in and bump-out.</p>
-                  <p className="text-muted-foreground">If the dates open to the public or on sale differ (for example a marketing description quoting other days), both are kept — nothing is changed automatically. Admins can add a “Public event dates” field to make the difference explicit.</p>
+                  <p><strong>Public dates</strong> are the days open to the public or on sale (Public start and end date in Event Overview). Leave them empty when they're the same as the event dates.</p>
+                  <p><strong>Event dates</strong> are the Event start and end dates. <strong>Bump-in and bump-out</strong> are the operational dates either side.</p>
+                  <p className="text-muted-foreground">If the event description mentions days that don't match, you'll see a warning here and on the To do list. Nothing is changed automatically.</p>
                 </PopoverContent>
               </Popover>
             </div>
-            <dl className="text-sm space-y-1.5">
-              <DateRow label="Event dates" value={start || end ? formatAuRange(start, end) : null} empty="Not added" />
-              {publicLoc && <DateRow label="Public dates" value={publicDates} empty="Not added" />}
-              <DateRow label="Bump-in starts" value={bumpIn ? formatAuDate(bumpIn) : null} empty="Not added" muted />
-              <DateRow label="Bump-out ends" value={bumpOut ? formatAuDate(bumpOut) : null} empty="Not added" muted />
-            </dl>
+            <div className="grid gap-3 sm:grid-cols-2 text-sm">
+              <div className="rounded-md border bg-background p-2.5">
+                <div className="text-xs font-medium text-muted-foreground">Open to the public</div>
+                <div className="font-medium mt-0.5">{publicRange ?? (start || end ? formatAuRange(start, end) : "Not added")}</div>
+                {!publicRange && (start || end) && (publicStartLoc || publicLoc) && <div className="text-xs text-muted-foreground">Same as the event dates</div>}
+                {!publicRange && canEdit && publicStartLoc && (
+                  <Button size="sm" variant="ghost" className="h-6 px-1 text-xs -ml-1" onClick={() => openArea(publicStartLoc.area.id, { field: publicStartLoc.field.refKey, edit: true })}><Plus className="size-3" /> Different public dates</Button>
+                )}
+              </div>
+              <div className="rounded-md border bg-background p-2.5">
+                <div className="text-xs font-medium text-muted-foreground">Event (operational)</div>
+                <dl className="space-y-1 mt-0.5">
+                  <DateRow label="Event dates" value={start || end ? formatAuRange(start, end) : null} empty="Not added" />
+                  <DateRow label="Bump-in starts" value={bumpIn ? formatAuDate(bumpIn) : null} empty="Not added" muted />
+                  <DateRow label="Bump-out ends" value={bumpOut ? formatAuDate(bumpOut) : null} empty="Not added" muted />
+                </dl>
+              </div>
+            </div>
+            {dc.conflicts.length > 0 && dc.descLoc && (
+              <div className="rounded-md border border-warning/50 bg-warning/15 p-2.5 text-xs flex items-start gap-2">
+                <AlertTriangle className="size-3.5 mt-px shrink-0" aria-hidden />
+                <div className="space-y-1">
+                  <p>The description says <strong>{dc.conflicts.map((m) => `“${m.text}”`).join(", ")}</strong>, but the {dc.reference === "public" ? "public dates are" : "event dates are"} <strong>{dc.reference === "public" ? formatAuRange(dc.publicStart, dc.publicEnd ?? dc.publicStart) : formatAuRange(start, end)}</strong>.</p>
+                  {canEdit && (
+                    <p className="flex flex-wrap gap-2">
+                      {dc.reference === "event" && publicStartLoc && <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => openArea(publicStartLoc.area.id, { field: publicStartLoc.field.refKey, edit: true })}>Set public dates</Button>}
+                      <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => openArea(dc.descLoc!.area.id, { field: dc.descLoc!.field.refKey, edit: true })}>Edit description</Button>
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
             {canEdit && dateLoc.start && (!start || !bumpIn || !bumpOut) && (
               <Button size="sm" variant="ghost" className="h-7 text-xs -ml-2" onClick={() => openArea(dateLoc.start!.area.id, { field: dateLoc.start!.field.refKey, edit: true })}>
                 <Pencil className="size-3.5" /> Add missing dates
@@ -251,8 +281,9 @@ export function EventHome() {
       <WorkspaceLinks />
 
       {canEdit && (
-        <Card title="Planning (editors)" icon={ListTodo} action={<Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => w.go({ view: "attention" })}>{attention ? `${attention} item${attention === 1 ? "" : "s"} need attention` : "Checklist"} <ArrowRight className="size-3.5" /></Button>}>
-          <CoverageSummary compact />
+        <Card title="Readiness (editors)" icon={ListTodo} action={<Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => w.go({ view: "attention" })}>{attention ? `To do (${attention})` : "To do"} <ArrowRight className="size-3.5" /></Button>}>
+          <ReadinessSummary compact />
+          <div className="mt-3 pt-3 border-t"><CoverageSummary compact /></div>
         </Card>
       )}
     </div>

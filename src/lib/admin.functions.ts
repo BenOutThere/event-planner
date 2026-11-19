@@ -1,6 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { isPlaceholderLabel, placeholderMessage } from "@/lib/labels";
+
+/** A field or area name: real wording, never a placeholder like "OTPME". */
+const LabelSchema = z.string().trim().min(1).max(120).superRefine((v, ctx) => {
+  if (isPlaceholderLabel(v)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: placeholderMessage(v) });
+});
 
 const RoleSchema = z.enum(["admin", "lead", "member", "supplier", "viewer"]);
 const TemplateKindSchema = z.enum(["text", "kv", "links", "files", "table", "phone", "email", "date"]);
@@ -258,7 +264,7 @@ export const createTemplateSection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z.object({
-      title: z.string().trim().min(1).max(120),
+      title: LabelSchema,
       description: z.string().trim().max(500).optional().nullable(),
       parent_id: z.string().uuid().optional().nullable(),
       nav_group: z.string().trim().max(60).optional().nullable(),
@@ -277,7 +283,7 @@ export const updateTemplateSection = createServerFn({ method: "POST" })
     z.object({
       id: z.string().uuid(),
       patch: z.object({
-        title: z.string().trim().min(1).max(120).optional(),
+        title: LabelSchema.optional(),
         description: z.string().trim().max(500).nullable().optional(),
         is_active: z.boolean().optional(),
         show_in_wizard: z.boolean().optional(),
@@ -337,7 +343,7 @@ export const createTemplateField = createServerFn({ method: "POST" })
     z.object({
       section_id: z.string().uuid(),
       kind: TemplateKindSchema,
-      label: z.string().trim().min(1).max(120),
+      label: LabelSchema,
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -353,7 +359,7 @@ export const updateTemplateField = createServerFn({ method: "POST" })
     z.object({
       id: z.string().uuid(),
       patch: z.object({
-        label: z.string().trim().min(1).max(120).optional(),
+        label: LabelSchema.optional(),
         kind: TemplateKindSchema.optional(),
         sort_order: z.number().int().optional(),
         default_table: TableDefaultSchema.optional(),
@@ -361,6 +367,7 @@ export const updateTemplateField = createServerFn({ method: "POST" })
         is_required: z.boolean().optional(),
         allow_na: z.boolean().optional(),
         multiline: z.boolean().optional(),
+        options: z.array(z.string().trim().min(1).max(120)).max(50).nullable().optional(),
         table_rules: TableRulesSchema.optional(),
       }).refine((patch) => Object.keys(patch).length > 0, "No changes supplied"),
     }).parse(input),
@@ -451,7 +458,7 @@ export const addTemplateSubsectionFromEvent = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({
       parent_id: z.string().uuid(),
-      title: z.string().trim().min(1).max(120),
+      title: LabelSchema,
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -467,7 +474,7 @@ export const addTemplateFieldFromEvent = createServerFn({ method: "POST" })
     z.object({
       section_id: z.string().uuid(),
       kind: TemplateKindSchema,
-      label: z.string().trim().min(1).max(120),
+      label: LabelSchema,
     }).parse(input),
   )
   .handler(async ({ data, context }) => {

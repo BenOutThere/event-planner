@@ -43,9 +43,9 @@ insert into eventplanner.template_sections (id,key,title,restricted_to) values
 insert into eventplanner.template_fields (section_id,key,label,kind) values
  ('10000000-0000-0000-0000-0000000000a0','f','Field','text'),('10000000-0000-0000-0000-0000000000b0','f','Field','text'),('10000000-0000-0000-0000-0000000000c0','f','Field','text');
 
-insert into eventplanner.events (id,name,lead_user_id,created_by) values
- ('20000000-0000-0000-0000-00000000000a','Event A','00000000-0000-0000-0000-0000000000a7','00000000-0000-0000-0000-0000000000a1'),
- ('20000000-0000-0000-0000-00000000000b','Event B',null,'00000000-0000-0000-0000-0000000000a1');
+insert into eventplanner.events (id,name,lead_user_id,created_by,proposed_date) values
+ ('20000000-0000-0000-0000-00000000000a','Event A','00000000-0000-0000-0000-0000000000a7','00000000-0000-0000-0000-0000000000a1','2027-02-24'),
+ ('20000000-0000-0000-0000-00000000000b','Event B',null,'00000000-0000-0000-0000-0000000000a1','2027-03-10');
 insert into eventplanner.event_members (event_id,user_id,access_level) values
  ('20000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000a5','edit'),
  ('20000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000a6','manage'),

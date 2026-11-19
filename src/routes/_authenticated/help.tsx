@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
   Home, Search, BookOpen, FolderOpen, Clock, Users, Layers, Pencil, Save, Table as TableIcon, LayoutTemplate,
-  HelpCircle, LifeBuoy, Rocket, Download, ArrowRight, ListTodo, Lock, ClipboardList,
+  HelpCircle, LifeBuoy, Rocket, Download, ArrowRight, ListTodo, Lock, ClipboardList, Archive,
 } from "lucide-react";
 import { ACCESS_INFO, GLOBAL_ROLE_INFO } from "@/lib/access";
 
@@ -28,7 +28,8 @@ const sections = [
   { id: "docs", label: "Documents & links", icon: FolderOpen },
   { id: "ops", label: "Operations plans", icon: ClipboardList },
   { id: "currency", label: "Ownership & reviews", icon: Clock },
-  { id: "attention", label: "Needs attention", icon: ListTodo },
+  { id: "status", label: "Event status & archiving", icon: Archive },
+  { id: "attention", label: "To do and readiness", icon: ListTodo },
   { id: "tables", label: "Tables", icon: TableIcon },
   { id: "saving", label: "How saving works", icon: Save },
   { id: "customise", label: "Adding fields to an event", icon: Pencil },
@@ -68,13 +69,15 @@ function HelpPage() {
               <li>If you can edit, select <strong>Edit section</strong> to change information. Changes save automatically.</li>
             </ol>
             <p>The main app menu folds away inside an event to give the content more room — select the menu icon at the top left to open it.</p>
+            <p>You sign in once at the OTG Control Centre and open Event Planner from its tile. Forgotten passwords are reset there too.</p>
+            <p><strong>New event</strong> (Events page) needs the event's real name and its start date. A best guess for the date is fine; you can change it later. Event names typed in capitals are shown in title case, e.g. “SUMMERNATS NEW ZEALAND” shows as “Summernats New Zealand”.</p>
           </Section>
 
           <Section id="home" icon={Home} title="Event Home">
             <p>A summary built from the event's own saved information — there's nothing extra to maintain:</p>
             <ul>
               <li>Name, short description, venue and address with <em>Open map</em>, event lead and status.</li>
-              <li><strong>Dates</strong>: event dates (from Event Overview) and operational dates (bump-in and bump-out), labelled separately.</li>
+              <li><strong>Dates</strong>, side by side: <em>Open to the public</em> (Public start and end date, or the event dates when they're the same) and <em>Event (operational)</em>: event dates, bump-in and bump-out. If the event description mentions days that don't match, a warning appears with buttons to set public dates or edit the description.</li>
               <li><strong>Pinned</strong>: up to 6 important sections, fields or documents chosen by editors.</li>
               <li>Quick access to the <strong>Event program</strong>, <strong>Master schedule</strong>, <strong>Site information</strong> and <strong>Documents &amp; links</strong>. Missing items say so plainly, e.g. “Master schedule not added”, with an <em>Add</em> button for editors.</li>
               <li><strong>Key contacts</strong> from the contact and team tables, with tap-to-call and email.</li>
@@ -149,17 +152,34 @@ function HelpPage() {
           <Section id="currency" icon={Clock} title="Ownership & reviews">
             <ul>
               <li>Each section shows <strong>when it was last updated and by whom</strong>.</li>
-              <li>Editors can set an optional <strong>responsible person</strong> and <strong>review date</strong> (⋯ → <em>Responsible person &amp; review date</em>).</li>
+              <li>Editors can set an optional <strong>responsible person</strong> and <strong>review date</strong> (⋯ → <em>Responsible person &amp; review date</em>). Pick an OTG person from the list (their name stays up to date), or choose <em>Someone else</em> to type a name or team.</li>
               <li><strong>Mark reviewed</strong> records that someone checked the section is current. Editing never marks a section reviewed.</li>
               <li>After a review, any later change shows <em>Changed since review</em>. After the review date, it shows <em>Review overdue</em>.</li>
               <li><strong>Change history</strong> (⋯ menu) lists recent changes; quick edits by the same person are grouped.</li>
-              <li>Event status, planning coverage and review status are separate — none changes the others.</li>
+              <li>Event status, readiness, planning coverage and review status are separate — none changes the others.</li>
             </ul>
           </Section>
 
-          <Section id="attention" icon={ListTodo} title="Needs attention (editors)">
-            <p>A checklist of configured required fields still without information, sections overdue for review or changed since review, and sections not set up yet — each with a button to fix it.</p>
-            <p><strong>Planning coverage</strong> is the share of fields with information entered. “All configured required fields have information” means only that — it doesn't mean the event information is complete, checked or operationally ready.</p>
+          <Section id="status" icon={Archive} title="Event status & archiving">
+            <p>Every event has a status that people who manage it set (⋯ → <em>Change status</em>):</p>
+            <ul>
+              <li><strong>Draft</strong> → <strong>In planning</strong> → <strong>Confirmed</strong> → <strong>Delivery ready</strong> → <strong>Live</strong> → <strong>Completed</strong> → <strong>Archived</strong>.</li>
+              <li>The app suggests the next status from the event dates: <em>In planning</em> when a draft is within 90 days of starting, <em>Live</em> while the event is on, <em>Completed</em> once its dates have passed, and archiving 30 days after it ends. A suggestion appears under the event name for people who manage the event; select the button to accept it or <em>Not now</em>. Status never changes by itself.</li>
+              <li><strong>Archive event</strong> (⋯ menu) is available once an event is <em>Completed</em>. An archived event leaves the Events list and <em>All events</em> search, and becomes read-only for everyone, admins included. Nothing is deleted: information, files, history and access are kept.</li>
+              <li>To see archived events, turn on <em>Show archived</em> on the Events page. Searching inside an archived event still works.</li>
+              <li><strong>Restore event</strong> (⋯ menu, or the button on the archived banner) brings it back as <em>Completed</em>. Anyone who manages the event can restore it.</li>
+            </ul>
+          </Section>
+
+          <Section id="attention" icon={ListTodo} title="To do and readiness (editors)">
+            <p><strong>To do</strong> (left-hand list) is everything still open for the event, each with a button to fix it: required information missing, areas not set up, reviews due or changed since review, and email addresses or phone numbers that don't look right. The count always comes with its breakdown, e.g. “4 to do: 4 areas not set up”.</p>
+            <p><strong>Readiness</strong> is one score for how far planning has got. It weighs required fields with information (half), areas set up (a quarter) and areas with up-to-date reviews (a quarter). It's shown with the days to go and a state that expects more as the event gets closer:</p>
+            <ul>
+              <li><strong>On track</strong> (green), <strong>Behind</strong> (amber) or <strong>At risk</strong> (red). More than 6 months out, 25% is on track; within 2 months it takes 75%; in the last 2 weeks, 90%.</li>
+              <li>Events that are on now or finished aren't graded.</li>
+              <li>The Events page shows each event's days to go, readiness and To do count (for people who can edit it).</li>
+            </ul>
+            <p><strong>Planning coverage</strong> is still shown underneath: the share of all fields with information entered. Neither readiness nor coverage means the information has been checked or the event is operationally ready, and neither changes the event status.</p>
           </Section>
 
           <Section id="tables" icon={TableIcon} title="Tables">
@@ -168,6 +188,8 @@ function HelpPage() {
               <li>The <strong>⋯</strong> on each row edits it in a larger window, moves it, inserts a row below, or deletes it (with Undo).</li>
               <li><strong>Manage columns</strong> renames, reorders, adds or removes columns, with a warning before information would be lost.</li>
               <li>If two people edit different rows or cells at the same time, both changes are kept. If they change the same cell, you're asked which version to keep.</li>
+              <li>Columns headed <em>Email</em> or <em>Phone</em>/<em>Mobile</em> are checked: anything that isn't an email address or phone number is marked with a warning so it can be fixed. It's still saved.</li>
+              <li>In columns headed <em>Name</em>, <em>Person</em> or <em>Contact</em>, OTG people are suggested as you type (in the row window and on phones). Anyone else can still be typed.</li>
             </ul>
           </Section>
 
@@ -200,7 +222,7 @@ function HelpPage() {
             <ul>
               {(["view", "edit", "manage"] as const).map((l) => <li key={l}><strong>{ACCESS_INFO[l].label}</strong> — {ACCESS_INFO[l].description}</li>)}
             </ul>
-            <p>The event lead and the person who created an event manage it automatically. Only admins can give someone <em>Can manage</em>. An assignment never gives access to other events. Names in contact tables are information only — they never give access.</p>
+            <p>The event lead and the person who created an event manage it automatically. Only admins can change the event lead (⋯ → <em>Change event lead</em>), choosing from OTG people. People's names come from their Control Centre profile, so update a name there. Only admins can give someone <em>Can manage</em>. An assignment never gives access to other events. Names in contact tables are information only — they never give access.</p>
             <p>Admins can see each person's effective access in <em>Admin → Show effective access</em>, and use <em>Preview as external stakeholder</em> in an event's ⋯ menu.</p>
             <p>Assignments created under the old rules kept their editing access and are listed under <em>Assignments to check</em> so an admin can confirm the right level.</p>
           </Section>
@@ -228,8 +250,8 @@ function HelpPage() {
             <ul>
               <li>Area list, incomplete filter, continue where you left off → left-hand list; <em>Only fields still to fill</em> is in edit mode.</li>
               <li>Search this event → search box at the top (now with All events, result types and inside-document search).</li>
-              <li>Planning coverage and missing required items → <em>Needs attention</em> and the Planning card on Event Home.</li>
-              <li>Status, copy event link, delete event → ⋯ menu at the top right.</li>
+              <li>Readiness, planning coverage and missing items → <em>To do</em> and the Readiness card on Event Home.</li>
+              <li>Status, archive or restore, copy event link, delete event → ⋯ menu at the top right.</li>
               <li>Field and area links → link icon on a field; ⋯ → <em>Copy link to this section</em>.</li>
               <li>Files and links → still in their fields; also listed together in <em>Documents &amp; links</em>.</li>
               <li>Event assignments → <em>Admin</em> (admins) or ⋯ → <em>People with access</em>.</li>
@@ -240,8 +262,8 @@ function HelpPage() {
             <dl className="space-y-4">
               <Faq q="Why can't I see a section other people mention?">It may be restricted to staff or event managers. Ask an admin.</Faq>
               <Faq q="Why can't I edit an event?">You have view access. Ask an admin or the event lead for edit access.</Faq>
-              <Faq q="The event dates and the marketing description show different days.">They can mean different things (e.g. bump-in vs public days). Both are kept; nothing is changed automatically. Admins can add a “Public event dates” field.</Faq>
-              <Faq q="What does “OTPME” mean?">This label is waiting for administrator-approved wording.</Faq>
+              <Faq q="The event dates and the marketing description show different days.">They can mean different things (e.g. the event runs 24–28 Feb but is open to the public 26–28 Feb). Fill in <em>Public start date</em> and <em>Public end date</em> in Event Overview: Event Home then shows both, and the warning goes once the description matches the public dates. Nothing is changed automatically.</Faq>
+              <Faq q="What does “Operating entity” mean?">The OTG company that runs the event, for example Out There Productions Major Events (formerly shown as “OTPME”). Admins manage the list of choices in the Template builder.</Faq>
               <Faq q="Where do uploaded files go?">They're stored with the event and follow the event's and the area's access rules.</Faq>
             </dl>
           </Section>

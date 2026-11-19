@@ -7,6 +7,7 @@ import { formatAuDate } from "@/lib/dates";
 export type AreaMeta = {
   area_id: string;
   responsible_name?: string | null;
+  responsible_user_id?: string | null;
   review_due?: string | null;
   reviewed_at?: string | null;
   reviewed_by_name?: string | null;

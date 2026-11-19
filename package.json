@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "guide:pdf": "vite build && node scripts/user-guide-pdf.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

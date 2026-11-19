@@ -14,6 +14,7 @@ import { buildEventStructure, refKey } from "@/lib/event-structure";
 import { highlightParts, searchEvent, searchTerms, type HitType, type SearchHit } from "@/lib/event-search";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "./context";
+import { displayEventName } from "@/lib/event-name";
 
 type Result = { key: string; eventId: string; eventName: string; hit?: SearchHit; content?: { path: string; file_name: string | null; snippet: string; areaTitle: string | null }; ops?: { id: string; title: string; file_name: string; category: string | null; snippet: string | null; section?: string; sectionCode?: string; page: number | null; count: number; eventId: string | null; eventName: string | null } };
 type Filter = "all" | HitType | "content" | "ops";
@@ -88,7 +89,7 @@ export function SearchView() {
     queryFn: async () => {
       const [vals, events, secs, flds, extras, custom, perms] = await Promise.all([
         supabase.rpc("search_event_values", { _q: dq }),
-        supabase.from("events").select("id, name"),
+        supabase.from("events").select("id, name").neq("stage", "archived"),
         supabase.from("template_sections").select("*"),
         supabase.from("template_fields").select("*"),
         supabase.from("event_section_extras").select("*"),
@@ -109,7 +110,7 @@ export function SearchView() {
         }).filter((a) => canRead.get(`${e.id}:${a.id}`) !== false);
         const byKey = new Map(rows.map((r: any) => [refKey(r), r]));
         const hits = searchEvent(areas, (f) => byKey.get(f.refKey) ?? null, dq);
-        if (hits.length) out.push({ eventId: e.id, eventName: e.name, hits });
+        if (hits.length) out.push({ eventId: e.id, eventName: displayEventName(e.name), hits });
       }
       return out;
     },

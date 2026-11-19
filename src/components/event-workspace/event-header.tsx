@@ -16,15 +16,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, CalendarDays, ChevronsUpDown, MapPin, MoreHorizontal, Search, Info, Link2, Settings2, Trash2, Users, X,
-  Loader2, AlertTriangle, CheckCircle2, RotateCw, Eye, Check,
+  Loader2, AlertTriangle, CheckCircle2, RotateCw, Eye, Check, Archive, ArchiveRestore, Lightbulb, UserCog,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSaver, useSaverStatus } from "@/hooks/use-event-saver";
-import { STAGE_INFO, STAGE_ORDER, type EventStage } from "@/lib/event-status";
+import { SETTABLE_STAGES, STAGE_INFO, stagePrompt, type EventStage } from "@/lib/event-status";
 import { formatAuRange } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "./context";
 import { AccessDialog } from "./access-dialog";
+import { PersonPicker, type PersonValue } from "@/components/fields/person-picker";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { displayEventName } from "@/lib/event-name";
 
 export function SaveIndicator() {
   const status = useSaverStatus();
@@ -53,7 +57,7 @@ function EventSwitcher() {
   const events = useQuery({
     queryKey: ["event-switcher"],
     enabled: !preview && open,
-    queryFn: async () => (await supabase.from("events").select("id, name, proposed_date, end_date").order("proposed_date", { ascending: true, nullsFirst: false })).data ?? [],
+    queryFn: async () => (await supabase.from("events").select("id, name, proposed_date, end_date").neq("stage", "archived").order("proposed_date", { ascending: true, nullsFirst: false })).data ?? [],
   });
   if (preview) return null;
   return (
@@ -73,7 +77,7 @@ function EventSwitcher() {
                 <CommandItem key={e.id} value={`${e.name} ${e.id}`} onSelect={() => { setOpen(false); navigate({ to: "/events/$id", params: { id: e.id }, search: {} as any }); }}>
                   <Check className={cn("size-4", e.id === event.id ? "opacity-100" : "opacity-0")} aria-hidden />
                   <div className="min-w-0">
-                    <div className="truncate">{e.name}</div>
+                    <div className="truncate">{displayEventName(e.name)}</div>
                     <div className="text-xs text-muted-foreground">{formatAuRange(e.proposed_date, e.end_date)}</div>
                   </div>
                 </CommandItem>
@@ -145,19 +149,26 @@ export function EventHeader({
   realIsAdmin: boolean;
   onToggleStakeholder: () => void;
 }) {
-  const { event, canEdit, canManage, isAdmin, preview, asStakeholder, go } = useWorkspace();
+  const { event, canEdit, canManage, archived, canRestore, isAdmin, preview, asStakeholder, go, today } = useWorkspace();
   const qc = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [accessOpen, setAccessOpen] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const [leadOpen, setLeadOpen] = useState(false);
+  const [dismissedPrompt, setDismissedPrompt] = useState<string | null>(null);
   const info = STAGE_INFO[event.stage] ?? STAGE_INFO.draft;
+  const prompt = canManage && !preview ? stagePrompt(event.stage, event.proposed_date, event.end_date, today) : null;
 
   async function setStage(stage: EventStage) {
     const { error } = await supabase.from("events").update({ stage }).eq("id", event.id);
-    if (error) return toast.error("Couldn't change the status. Only people who manage this event can do this.");
-    toast.success(`Status set to ${STAGE_INFO[stage].label}`);
+    if (error) {
+      return toast.error(error.code === "22023" || error.code === "42501" ? error.message : "Couldn't change the status. Only people who manage this event can do this.");
+    }
+    toast.success(stage === "archived" ? `Archived ${event.name}` : event.stage === "archived" ? `Restored ${event.name}` : `Status set to ${STAGE_INFO[stage].label}`);
     qc.invalidateQueries({ queryKey: ["event", event.id] });
     qc.invalidateQueries({ queryKey: ["events"] });
+    qc.invalidateQueries({ queryKey: ["my-event-access"] });
   }
 
   async function deleteEvent() {
@@ -238,18 +249,29 @@ export function EventHeader({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuItem onSelect={copyEventLink}><Link2 className="size-4" /> Copy link to event</DropdownMenuItem>
-                {(canManage || isAdmin) && (
+                {(canManage || (isAdmin && !archived)) && (
                   <DropdownMenuItem onSelect={() => setAccessOpen(true)}><Users className="size-4" /> People with access…</DropdownMenuItem>
+                )}
+                {isAdmin && !archived && (
+                  <DropdownMenuItem onSelect={() => setLeadOpen(true)}><UserCog className="size-4" /> Change event lead…</DropdownMenuItem>
                 )}
                 {canManage && (
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger><Settings2 className="size-4" /> Change status</DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
                       <DropdownMenuRadioGroup value={event.stage} onValueChange={(v) => setStage(v as EventStage)}>
-                        {STAGE_ORDER.map((s) => <DropdownMenuRadioItem key={s} value={s}>{STAGE_INFO[s].label}</DropdownMenuRadioItem>)}
+                        {SETTABLE_STAGES.map((s) => <DropdownMenuRadioItem key={s} value={s}>{STAGE_INFO[s].label}</DropdownMenuRadioItem>)}
                       </DropdownMenuRadioGroup>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
+                )}
+                {canManage && (
+                  event.stage === "completed"
+                    ? <DropdownMenuItem onSelect={() => setConfirmArchive(true)}><Archive className="size-4" /> Archive event…</DropdownMenuItem>
+                    : <DropdownMenuItem disabled><Archive className="size-4" /> Archive event (set to Completed first)</DropdownMenuItem>
+                )}
+                {canRestore && (
+                  <DropdownMenuItem onSelect={() => setStage("completed")}><ArchiveRestore className="size-4" /> Restore event</DropdownMenuItem>
                 )}
                 {realIsAdmin && (
                   <>
@@ -272,7 +294,43 @@ export function EventHeader({
         {canEdit && <div className="md:hidden w-full -mt-1 empty:hidden"><SaveIndicator /></div>}
       </div>
 
+      {archived && (
+        <div className="border-t bg-muted/60">
+          <div className="mx-auto max-w-[90rem] px-4 lg:px-6 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <Archive className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="flex-1 min-w-0">This event is archived. You can read everything, but nothing can be changed.</span>
+            {canRestore && <Button size="sm" variant="outline" onClick={() => setStage("completed")}><ArchiveRestore className="size-4" /> Restore event</Button>}
+          </div>
+        </div>
+      )}
+      {prompt && dismissedPrompt !== `${event.stage}:${prompt.to}` && (
+        <div className="border-t bg-info/10">
+          <div className="mx-auto max-w-[90rem] px-4 lg:px-6 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <Lightbulb className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="flex-1 min-w-0">{prompt.message} It's currently <strong>{info.label}</strong>.</span>
+            <Button size="sm" variant="outline" onClick={() => (prompt.to === "archived" ? setConfirmArchive(true) : setStage(prompt.to))}>{prompt.action}</Button>
+            <Button size="sm" variant="ghost" onClick={() => setDismissedPrompt(`${event.stage}:${prompt.to}`)}>Not now</Button>
+          </div>
+        </div>
+      )}
+
       {accessOpen && <AccessDialog open={accessOpen} onOpenChange={setAccessOpen} />}
+      {leadOpen && <LeadDialog open={leadOpen} onOpenChange={setLeadOpen} />}
+
+      <AlertDialog open={confirmArchive} onOpenChange={setConfirmArchive}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive “{event.name}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The event moves off the dashboard and out of "All events" search, and becomes read-only for everyone. Nothing is deleted: its information, files, history and access are all kept. Anyone who manages the event can restore it at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep it open</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmArchive(false); void setStage("archived"); }}>Archive event</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
@@ -292,5 +350,45 @@ export function EventHeader({
         </AlertDialogContent>
       </AlertDialog>
     </header>
+  );
+}
+
+/** Admins choose the event lead from OTG people. The lead manages the event. */
+function LeadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const w = useWorkspace();
+  const qc = useQueryClient();
+  const [lead, setLead] = useState<PersonValue>({ userId: w.event.lead_user_id ?? null, name: "" });
+  const [busy, setBusy] = useState(false);
+  const people = [...w.profiles.entries()].map(([id, name]) => ({ id, name }));
+
+  async function save() {
+    setBusy(true);
+    const { error } = await supabase.from("events").update({ lead_user_id: lead.userId }).eq("id", w.eventId);
+    setBusy(false);
+    if (error) return toast.error(error.code === "42501" ? error.message : "Couldn't change the event lead.");
+    toast.success(lead.userId ? `${lead.name} is now the event lead` : "Event lead removed");
+    qc.invalidateQueries({ queryKey: ["event", w.eventId] });
+    qc.invalidateQueries({ queryKey: ["events"] });
+    qc.invalidateQueries({ queryKey: ["my-event-access"] });
+    onOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Event lead</DialogTitle>
+          <DialogDescription>The event lead is shown on Event Home and manages this event automatically. Only admins can change it.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <Label htmlFor="event-lead">Event lead</Label>
+          <PersonPicker id="event-lead" ariaLabel="Event lead" people={people} value={lead} onChange={setLead} allowOther={false} noneLabel="No event lead" />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={save} disabled={busy || lead.userId === (w.event.lead_user_id ?? null)}>{busy ? "Saving…" : "Save"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

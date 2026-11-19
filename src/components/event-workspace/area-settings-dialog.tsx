@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { DateField } from "@/components/fields/date-field";
+import { PersonPicker, type PersonValue } from "@/components/fields/person-picker";
 import { RESTRICTION_INFO } from "@/lib/currency";
 import type { StructArea } from "@/lib/event-structure";
 import { useWorkspace } from "./context";
@@ -15,21 +16,21 @@ export function AreaSettingsDialog({ area, open, onOpenChange }: { area: StructA
   const w = useWorkspace();
   const m = w.meta.get(area.id);
   const templateDefault = (w.areaPerms?.get(area.id) && !m?.restricted_to) ? w.areaPerms.get(area.id)!.restricted_to : null;
-  const [responsible, setResponsible] = useState("");
+  const [responsible, setResponsible] = useState<PersonValue>({ userId: null, name: "" });
   const [due, setDue] = useState<string | null>(null);
   const [restriction, setRestriction] = useState<string>("default");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setResponsible(m?.responsible_name ?? "");
+    setResponsible({ userId: (m as any)?.responsible_user_id ?? null, name: m?.responsible_name ?? "" });
     setDue(m?.review_due ?? null);
     setRestriction(m?.restricted_to ?? "default");
   }, [open]);
 
   async function save() {
     setBusy(true);
-    const row: Record<string, unknown> = { event_id: w.eventId, area_id: area.id, responsible_name: responsible.trim() || null, review_due: due };
+    const row: Record<string, unknown> = { event_id: w.eventId, area_id: area.id, responsible_name: responsible.name.trim() || null, responsible_user_id: responsible.userId, review_due: due };
     if (w.isAdmin) row.restricted_to = restriction === "default" ? null : restriction;
     const { error } = await supabase.from("event_area_meta").upsert(row as any, { onConflict: "event_id,area_id" });
     setBusy(false);
@@ -39,7 +40,7 @@ export function AreaSettingsDialog({ area, open, onOpenChange }: { area: StructA
     onOpenChange(false);
   }
 
-  const people = [...new Set([...w.profiles.values()])].sort();
+  const people = [...w.profiles.entries()].map(([id, name]) => ({ id, name }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -51,8 +52,7 @@ export function AreaSettingsDialog({ area, open, onOpenChange }: { area: StructA
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="resp">Responsible person</Label>
-            <Input id="resp" list="resp-people" value={responsible} onChange={(e) => setResponsible(e.target.value)} placeholder="Name or team" />
-            <datalist id="resp-people">{people.map((p) => <option key={p} value={p} />)}</datalist>
+            <PersonPicker id="resp" ariaLabel="Responsible person" people={people} value={responsible} onChange={setResponsible} />
             <p className="text-xs text-muted-foreground">Shown to everyone who can see this area. It doesn't change anyone's access.</p>
           </div>
           <div className="space-y-1.5">

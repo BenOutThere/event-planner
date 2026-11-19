@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +16,13 @@ import { useMyEventAccess } from "@/hooks/use-event-access";
 import { ACCESS_INFO, canEditLevel } from "@/lib/access";
 import { formatAuRange } from "@/lib/dates";
 import { STAGE_INFO } from "@/lib/event-status";
-import { buildEventStructure, areaFields } from "@/lib/event-structure";
+import { buildEventStructure, areaFields, type StructArea, type StructField } from "@/lib/event-structure";
 import { coverageOf } from "@/lib/coverage";
+import { daysToGoLabel, RAG_INFO, readiness, todoItems } from "@/lib/readiness";
+import type { AreaMeta } from "@/lib/currency";
+import { toDateOnly } from "@/lib/dates";
 import { cn } from "@/lib/utils";
+import { displayEventName } from "@/lib/event-name";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -39,19 +45,22 @@ function Dashboard() {
   const canCreate = isAdmin || roles.includes("lead") || roles.includes("member");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("date");
+  const [showArchived, setShowArchived] = useState(false);
   const access = useMyEventAccess();
 
   const data = useQuery({
     queryKey: ["events"],
     queryFn: async () => {
-      const [ev, secs, flds, vals, extras, custom] = await Promise.all([
+      const [ev, secs, flds, vals, extras, custom, metaQ] = await Promise.all([
         supabase.from("events").select("*"),
         supabase.from("template_sections").select("*"),
         supabase.from("template_fields").select("*"),
-        supabase.from("event_field_values").select("event_id, section_id, extra_section_id, field_key, value_text, value_kv, value_links, value_table, not_applicable"),
+        supabase.from("event_field_values").select("event_id, section_id, extra_section_id, field_key, kind, value_text, value_kv, value_links, value_table, not_applicable, updated_at"),
         supabase.from("event_section_extras").select("*"),
         supabase.from("event_custom_fields").select("*"),
+        supabase.from("event_area_meta").select("*"),
       ]);
+      const today = toDateOnly(new Date());
       if (ev.error) throw ev.error;
       const events = ev.data ?? [];
       return events.map((e) => {
@@ -65,14 +74,24 @@ function Dashboard() {
         });
         const byKey = new Map(values.map((v) => [`${v.section_id ?? `x:${v.extra_section_id}`}::${v.field_key}`, v]));
         const coverage = coverageOf(areas.flatMap((a) => areaFields(a).map((def) => ({ def, value: byKey.get(def.refKey) as any }))));
-        return { ...e, coverage };
+        const meta = new Map<string, AreaMeta>(((metaQ.data ?? []) as any[]).filter((m) => m.event_id === e.id).map((m) => [m.area_id, m]));
+        const input = {
+          areas, meta, today,
+          getValue: (f: StructField) => (byKey.get(f.refKey) as any) ?? null,
+          areaUpdatedAt: (a: StructArea) => areaFields(a).reduce<string | null>((at, f) => { const u = (byKey.get(f.refKey) as any)?.updated_at ?? null; return u && (!at || u > at) ? u : at; }, null),
+        };
+        const ready = readiness({ ...input, start: e.proposed_date, end: e.end_date, stage: e.stage });
+        const todo = todoItems(input).length;
+        return { ...e, name: displayEventName(e.name), coverage, ready, todo };
       });
     },
   });
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    const rows = (data.data ?? []).filter((e) => !needle || `${e.name} ${e.location ?? ""} ${e.venue ?? ""}`.toLowerCase().includes(needle));
+    const rows = (data.data ?? [])
+      .filter((e) => showArchived || e.stage !== "archived")
+      .filter((e) => !needle || `${e.name} ${e.location ?? ""} ${e.venue ?? ""}`.toLowerCase().includes(needle));
     const byName = (a: any, b: any) => a.name.localeCompare(b.name);
     return rows.slice().sort((a, b) => {
       if (sort === "name") return byName(a, b);
@@ -83,7 +102,8 @@ function Dashboard() {
       if (!b.proposed_date) return -1;
       return a.proposed_date.localeCompare(b.proposed_date);
     });
-  }, [data.data, q, sort]);
+  }, [data.data, q, sort, showArchived]);
+  const archivedCount = (data.data ?? []).filter((e) => e.stage === "archived").length;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
@@ -112,6 +132,12 @@ function Dashboard() {
             <SelectItem value="name">Name A–Z</SelectItem>
           </SelectContent>
         </Select>
+        {archivedCount > 0 && (
+          <div className="flex items-center gap-2">
+            <Switch id="show-archived" checked={showArchived} onCheckedChange={setShowArchived} />
+            <Label htmlFor="show-archived" className="text-sm font-normal">Show archived ({archivedCount})</Label>
+          </div>
+        )}
       </div>
 
       {data.isLoading ? (
@@ -135,6 +161,8 @@ function Dashboard() {
 function EventCard({ event, level }: { event: any; level: keyof typeof ACCESS_INFO | null }) {
   const info = STAGE_INFO[event.stage as keyof typeof STAGE_INFO] ?? STAGE_INFO.draft;
   const c = event.coverage;
+  const r = event.ready as import("@/lib/readiness").Readiness | undefined;
+  const days = daysToGoLabel(r?.daysToGo ?? null);
   return (
     <Link
       to="/events/$id"
@@ -150,13 +178,21 @@ function EventCard({ event, level }: { event: any; level: keyof typeof ACCESS_IN
         {event.location && <div className="flex items-center gap-2"><MapPin className="size-4 shrink-0" aria-hidden /> <span className="break-words">{event.location}</span></div>}
       </div>
       {level && <p className="mt-3 text-xs text-muted-foreground">Your access: {ACCESS_INFO[level].label}</p>}
-      {canEditLevel(level) && c?.configured && c.pct !== null && (
-        <div className="mt-4">
+      {r && r.label !== "Finished" && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          {days && <span className="font-medium">{days}</span>}
+          {canEditLevel(level) && r.rag !== "none" && <span className={cn("rounded border px-1.5 py-px font-medium", RAG_INFO[r.rag].tone)}>{r.label}</span>}
+          {canEditLevel(level) && event.todo > 0 && <span className="text-muted-foreground">{event.todo} to do</span>}
+        </div>
+      )}
+      {canEditLevel(level) && r?.score != null && (
+        <div className="mt-3">
           <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-muted-foreground">Planning coverage</span>
-            <span className="tabular-nums font-medium">{c.pct}% <span className="text-muted-foreground font-normal">({c.entered}/{c.total})</span></span>
+            <span className="text-muted-foreground">Readiness</span>
+            <span className="tabular-nums font-medium">{r.score}%</span>
           </div>
-          <Progress value={c.pct} className="h-1.5" aria-label={`Planning coverage ${c.pct}%`} />
+          <Progress value={r.score} className={cn("h-1.5", RAG_INFO[r.rag].bar)} aria-label={`Readiness ${r.score}%`} />
+          {c?.configured && c.pct !== null && <p className="mt-1 text-[11px] text-muted-foreground">Planning coverage {c.pct}% ({c.entered}/{c.total} fields)</p>}
         </div>
       )}
     </Link>

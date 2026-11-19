@@ -11,7 +11,7 @@ export function currentSectionLabel(view: WorkspaceView, active: StructArea | nu
   if (view === "search") return search.q ? `Results: ${search.q}` : "Search";
   if (view === "documents") return "Documents & links";
   if (view === "ops") return "Operations plan";
-  if (view === "attention") return "Needs attention";
+  if (view === "attention") return "To do";
   if (view === "area") return active?.title ?? "Section";
   return "Event Home";
 }
@@ -80,7 +80,7 @@ export function EventNav() {
         {canEdit && (
           <li>
             <NavButton active={view === "attention"} onClick={() => go({ view: "attention", area: undefined, field: undefined, q: undefined, edit: undefined })}>
-              <ListTodo className="size-4 shrink-0" aria-hidden /> <span className="flex-1">Needs attention</span>
+              <ListTodo className="size-4 shrink-0" aria-hidden /> <span className="flex-1">To do</span>
               {attention > 0 && <span className={cn("text-[11px] tabular-nums rounded px-1", view === "attention" ? "bg-primary-foreground/20" : "bg-muted text-foreground")}>{attention}</span>}
             </NavButton>
           </li>

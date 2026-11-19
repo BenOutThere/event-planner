@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMyEventAccess } from "@/hooks/use-event-access";
 import { canEditLevel } from "@/lib/access";
 import { EventWorkspace, parseWorkspaceSearch, type WorkspaceSearch } from "@/components/event-workspace/workspace";
+import { displayEventName } from "@/lib/event-name";
 
 export const Route = createFileRoute("/_authenticated/events/$id")({
   validateSearch: (s: Record<string, unknown>) => parseWorkspaceSearch(s),
@@ -33,7 +34,8 @@ function EventDetail() {
     queryFn: async () => {
       const { data, error } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
-      return data;
+      // R8: names typed in capitals are shown in title case (the saved name is unchanged).
+      return data ? { ...data, name: displayEventName(data.name) } : data;
     },
   });
   const sections = useQuery({
