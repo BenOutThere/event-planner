@@ -1,4 +1,6 @@
 import { RESTRICTION_INFO } from "@/lib/currency";
+import { reorder, sortOrderChanges } from "@/lib/reorder";
+import { useDragSort } from "@/hooks/use-drag-sort";
 import { startersFor, type Starter } from "@/lib/starter-fields";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Plus, Trash2, ArrowUp, ArrowDown, Eye, Search, ChevronDown, ChevronRight, RotateCcw, Archive, FolderOpen, FileText,
+  GripVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -93,6 +96,11 @@ function TemplateBuilder() {
     if (!selected && heads[0]) setSelected(heads[0].id);
   }, [heads.length]);
 
+  const headDrag = useDragSort((from, to) => dropReorder(heads, from, to, "section"));
+  const subDrag = useDragSort((from, to) => {
+    const a = active.find((x) => x.id === from), b = active.find((x) => x.id === to);
+    if (a && b && a.parent_id && a.parent_id === b.parent_id) void dropReorder(subsOf(a.parent_id), from, to, "section");
+  });
   if (loading) return null;
   if (!isAdmin) return <Navigate to="/dashboard" />;
 
@@ -127,6 +135,15 @@ function TemplateBuilder() {
     await attempt(() => Promise.all(kind === "section"
       ? [fns.updateSection({ data: { id, patch: { sort_order: b } } }), fns.updateSection({ data: { id: other.id, patch: { sort_order: a } } })]
       : [fns.updateField({ data: { id, patch: { sort_order: b } } }), fns.updateField({ data: { id: other.id, patch: { sort_order: a } } })]));
+  }
+
+  // R21: drag and drop. Renumbers the list and saves only what moved.
+  async function dropReorder(list: any[], fromId: string, toId: string, kind: "section" | "field") {
+    const changes = sortOrderChanges(reorder(list, fromId, toId));
+    if (!changes.length) return;
+    await attempt(() => Promise.all(changes.map((c) => kind === "section"
+      ? fns.updateSection({ data: { id: c.id, patch: { sort_order: c.sort_order } } })
+      : fns.updateField({ data: { id: c.id, patch: { sort_order: c.sort_order } } }))), "New order saved for every event");
   }
 
   async function removeSection(s: any) {
@@ -169,8 +186,9 @@ function TemplateBuilder() {
                 const subs = subsOf(h.id);
                 const expanded = open[h.id] ?? (selected === h.id || subs.some((s) => s.id === selected) || !!needle);
                 return (
-                  <li key={h.id}>
-                    <div className={cn("flex items-center rounded-md", selected === h.id && "bg-primary text-primary-foreground")}>
+                  <li key={h.id} {...headDrag.itemProps(h.id, !needle)}
+                    className={cn(headDrag.dragId === h.id && "opacity-50", headDrag.overId === h.id && headDrag.dragId !== h.id && "border-t-2 border-primary")}>
+                    <div className={cn("group/row flex items-center rounded-md", selected === h.id && "bg-primary text-primary-foreground")}>
                       <button type="button" className="p-1.5" aria-label={expanded ? `Collapse ${h.title}` : `Expand ${h.title}`}
                         onClick={() => setOpen((o) => ({ ...o, [h.id]: !expanded }))} disabled={subs.length === 0}>
                         {subs.length === 0 ? <span className="inline-block size-4" /> : expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
@@ -178,11 +196,13 @@ function TemplateBuilder() {
                       <button type="button" onClick={() => setSelected(h.id)} className="flex-1 text-left text-sm font-medium py-1.5 pr-2 min-w-0">
                         <span className="break-words">{h.title}</span>
                       </button>
+                      {!needle && <GripVertical className="size-4 mr-1 shrink-0 opacity-30 group-hover/row:opacity-70 cursor-grab" aria-hidden />}
                     </div>
                     {expanded && subs.length > 0 && (
                       <ul className="ml-6 border-l pl-1 my-0.5 space-y-0.5">
                         {subs.filter((s) => !needle || matches(s) || matches(h)).map((s) => (
-                          <li key={s.id}>
+                          <li key={s.id} {...subDrag.itemProps(s.id, !needle)}
+                            className={cn(subDrag.dragId === s.id && "opacity-50", subDrag.overId === s.id && subDrag.dragId !== s.id && "border-t-2 border-primary")}>
                             <button type="button" onClick={() => setSelected(s.id)}
                               className={cn("w-full text-left text-sm rounded-md px-2 py-1", selected === s.id ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
                               {s.title}
@@ -232,6 +252,7 @@ function TemplateBuilder() {
               onSelect={setSelected}
               onMove={(dir) => move(sel.parent_id ? subsOf(sel.parent_id) : heads, sel.id, dir, "section")}
               onMoveField={(id, dir) => move(fieldsOf(sel.id), id, dir, "field")}
+              onReorderFields={(from, to) => dropReorder(fieldsOf(sel.id), from, to, "field")}
               onRemove={() => removeSection(sel)}
               setConfirm={setConfirm}
             />
@@ -280,13 +301,14 @@ function ArchivedList({ sections, fields, sectionTitle, onRestoreSection, onRest
 }
 
 function SectionSettings({
-  section, isArea, parent, subs, fields, groups, siblings, fns, attempt, onSelect, onMove, onMoveField, onRemove, setConfirm,
+  section, isArea, parent, subs, fields, groups, siblings, fns, attempt, onSelect, onMove, onMoveField, onRemove, setConfirm, onReorderFields,
 }: {
   section: any; isArea: boolean; parent: any; subs: any[]; fields: any[]; groups: string[]; siblings: any[];
   fns: any; attempt: (fn: () => Promise<unknown>, ok?: string) => Promise<void>;
   onSelect: (id: string) => void; onMove: (dir: -1 | 1) => void; onMoveField: (id: string, dir: -1 | 1) => void;
-  onRemove: () => void; setConfirm: (c: Confirm) => void;
+  onRemove: () => void; setConfirm: (c: Confirm) => void; onReorderFields: (fromId: string, toId: string) => void;
 }) {
+  const fieldDrag = useDragSort(onReorderFields);
   const [title, setTitle] = useState(section.title);
   const [desc, setDesc] = useState(section.description ?? "");
   const [group, setGroup] = useState<string>(section.nav_group ?? "");
@@ -403,9 +425,11 @@ function SectionSettings({
         <section className="rounded-xl border bg-card p-5 space-y-3" aria-label="Fields">
           <h2 className="font-display font-semibold">Fields</h2>
           {fields.length === 0 && <p className="text-sm text-muted-foreground">No fields yet. Events show this as “Not configured”.</p>}
+          {fields.length > 1 && <p className="text-xs text-muted-foreground">Drag a field by its handle to reorder, or use the arrows.</p>}
           <ul className="space-y-2">
             {fields.map((f, i) => (
               <FieldSettings key={f.id} field={f} first={i === 0} last={i === fields.length - 1}
+                drag={fieldDrag.itemProps(f.id)} dragging={fieldDrag.dragId === f.id} over={fieldDrag.overId === f.id && fieldDrag.dragId !== f.id}
                 fns={fns} attempt={attempt} onMove={(dir) => onMoveField(f.id, dir)} setConfirm={setConfirm} />
             ))}
           </ul>
@@ -455,8 +479,8 @@ function StarterFields({ title, existing, onAdd }: { title: string; existing: st
   );
 }
 
-function FieldSettings({ field, first, last, fns, attempt, onMove, setConfirm }: {
-  field: any; first: boolean; last: boolean; fns: any;
+function FieldSettings({ field, first, last, fns, attempt, onMove, setConfirm, drag, dragging, over }: {
+  field: any; first: boolean; last: boolean; fns: any; drag?: React.HTMLAttributes<HTMLLIElement>; dragging?: boolean; over?: boolean;
   attempt: (fn: () => Promise<unknown>, ok?: string) => Promise<void>;
   onMove: (dir: -1 | 1) => void; setConfirm: (c: Confirm) => void;
 }) {
@@ -498,8 +522,9 @@ function FieldSettings({ field, first, last, fns, attempt, onMove, setConfirm }:
   }
 
   return (
-    <li className="rounded-md border bg-background">
+    <li {...(expanded ? {} : drag)} className={cn("rounded-md border bg-background", dragging && "opacity-50", over && "border-t-2 border-t-primary")}>
       <div className="flex items-center gap-2 px-3 py-2">
+        {!expanded && <GripVertical className="size-4 shrink-0 text-muted-foreground cursor-grab" aria-hidden />}
         <button type="button" onClick={() => setExpanded((e) => !e)} aria-expanded={expanded} className="flex-1 min-w-0 flex items-center gap-2 text-left">
           {expanded ? <ChevronDown className="size-4 shrink-0" aria-hidden /> : <ChevronRight className="size-4 shrink-0" aria-hidden />}
           <Icon className="size-4 text-muted-foreground shrink-0" aria-hidden />

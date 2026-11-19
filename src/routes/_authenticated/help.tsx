@@ -248,6 +248,7 @@ function HelpPage() {
               <li><strong>Included for</strong> sets which event types show an area: <em>Major event</em>, <em>Smaller event</em> or both. Areas ticked for both are the common core.</li>
               <li>Fields have a name, type, help text, <em>Required</em>, <em>Allow “Not applicable”</em> and, for tables, starting rows and completion rules.</li>
               <li><strong>Suggested starter fields</strong> appear for common areas (Operations, Marketing, Commercial, Scope, Audience, Event dates). They're optional; adding them creates empty fields only.</li>
+              <li>To reorder, drag an area, sub-section or field by its handle (⋮⋮), or use the Up and Down arrows (on phones and with a keyboard). The new order applies to every event.</li>
               <li>Renaming or reordering keeps saved information attached. Removing something that holds information archives it instead.</li>
               <li><strong>Preview</strong> shows the template as an event. Nothing typed there is saved.</li>
             </ul>
