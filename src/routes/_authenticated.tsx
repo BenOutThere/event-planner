@@ -42,7 +42,7 @@ function AuthLayout() {
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={sidebarWasOpen()}>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
@@ -57,4 +57,11 @@ function AuthLayout() {
       </div>
     </SidebarProvider>
   );
+}
+
+/** R16: open the main menu the way the person last left it (saved by the menu itself). */
+function sidebarWasOpen(): boolean {
+  if (typeof document === "undefined") return true;
+  const m = /(?:^|;\s*)sidebar_state=(true|false)/.exec(document.cookie);
+  return m ? m[1] === "true" : true;
 }

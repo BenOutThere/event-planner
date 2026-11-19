@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowDown, ArrowUp, Columns3, LayoutList, MoreHorizontal, Pencil, Plus, Rows3, Table as TableIcon, Trash2, Mail, Phone, AlertTriangle,
+  BookUser,
 } from "lucide-react";
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { asTable, type TableValue } from "@/lib/coverage";
@@ -19,17 +21,41 @@ import { cn } from "@/lib/utils";
 
 import { cellProblem, columnKind, EMAIL_RE as EMAIL_VAL } from "@/lib/contact-checks";
 import { usePeopleNames } from "./people-context";
+import { useDirectory } from "./directory-context";
+import { canFillFromDirectory, columnRole, contactFromRow, contactLabel, exactMatch, fillRow, type DirectoryContact } from "@/lib/directory";
 
 function colType(name: string): "email" | "tel" | "text" {
   const k = columnKind(name);
   return k === "email" || k === "tel" ? k : "text";
 }
 
-/** Suggests OTG people in name columns; anyone else can still be typed. */
+/** Suggests OTG people and directory contacts in name columns; anyone else can still be typed. */
 function PeopleList({ id }: { id: string }) {
   const people = usePeopleNames();
-  if (!people.length) return null;
-  return <datalist id={id}>{people.map((p) => <option key={p} value={p} />)}</datalist>;
+  const { contacts } = useDirectory();
+  const dir = contacts.filter((c) => c.kind === "person");
+  const names = new Set(dir.map((c) => c.name.toLowerCase()));
+  const others = people.filter((p) => !names.has(p.toLowerCase()));
+  if (!others.length && !dir.length) return null;
+  return (
+    <datalist id={id}>
+      {dir.map((c) => <option key={c.id} value={c.name}>{contactLabel(c)}</option>)}
+      {others.map((p) => <option key={p} value={p} />)}
+    </datalist>
+  );
+}
+
+/** Suggests directory suppliers in company / supplier columns. */
+function SupplierList({ id }: { id: string }) {
+  const { contacts } = useDirectory();
+  const sup = contacts.filter((c) => c.kind === "supplier");
+  if (!sup.length) return null;
+  return <datalist id={id}>{sup.map((c) => <option key={c.id} value={c.name} />)}</datalist>;
+}
+
+function listFor(column: string, peopleId: string, supplierId: string) {
+  const r = columnRole(column);
+  return r === "name" ? peopleId : r === "organisation" ? supplierId : undefined;
 }
 
 /** Render a saved cell; emails and phone numbers become tappable links. */
@@ -172,7 +198,11 @@ export function TableField({
   const [newCols, setNewCols] = useState(3);
   const [newRows, setNewRows] = useState(3);
   const cells = useRef(new Map<string, HTMLTextAreaElement>());
-  const peopleListId = `people-${useId().replace(/:/g, "")}`;
+  const listBase = useId().replace(/:/g, "");
+  const peopleListId = `people-${listBase}`;
+  const supplierListId = `suppliers-${listBase}`;
+  const directory = useDirectory();
+  const [pickFor, setPickFor] = useState<number | null>(null);
   const [focusReq, setFocusReq] = useState<{ r: number; c: number } | null>(null);
 
   const table = asTable(value) ?? asTable(defaults);
@@ -209,8 +239,28 @@ export function TableField({
 
   const t = table;
   const isReq = (c: string) => requiredColumns.some((r) => r.trim().toLowerCase() === c.trim().toLowerCase());
-  const setCell = (r: number, c: number, v: string) =>
-    onChange({ columns: t.columns, rows: t.rows.map((row, ri) => (ri === r ? t.columns.map((_, ci) => (ci === c ? v : row[ci] ?? "")) : row)) });
+  // Typing (or picking) a name that's in the directory fills the rest of the row's empty cells (R17).
+  const setCell = (r: number, c: number, v: string) => {
+    const match = exactMatch(v, columnRole(t.columns[c]), directory.contacts);
+    onChange({
+      columns: t.columns,
+      rows: t.rows.map((row, ri) => {
+        if (ri !== r) return row;
+        const next = t.columns.map((_, ci) => (ci === c ? v : row[ci] ?? ""));
+        return match ? fillRow(t.columns, next, match) : next;
+      }),
+    });
+  };
+  const fillFromDirectory = (r: number, c: DirectoryContact) =>
+    onChange({ columns: t.columns, rows: t.rows.map((row, ri) => (ri === r ? fillRow(t.columns, row, c, true) : row)) }, 0);
+  async function saveRowToDirectory(r: number) {
+    const entry = contactFromRow(t.columns, t.rows[r] ?? []);
+    if (!entry) return toast.error("Add a name or company to this row first.");
+    if (exactMatch(entry.name, entry.kind === "person" ? "name" : "organisation", directory.contacts)) return toast(`${entry.name} is already in the directory.`);
+    if (await directory.save(entry)) toast.success(`${entry.name} saved to Contacts & suppliers`);
+    else toast.error("Couldn't save to the directory.");
+  }
+  const directoryCols = canFillFromDirectory(t.columns);
   const blankRow = () => Array(t.columns.length).fill("");
   const addRow = (at = t.rows.length) => {
     const rows = t.rows.slice();
@@ -255,6 +305,12 @@ export function TableField({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={() => setEditRow(i)}><Pencil className="size-4" /> Edit row</DropdownMenuItem>
+        {directoryCols && directory.contacts.length > 0 && (
+          <DropdownMenuItem onSelect={() => setPickFor(i)}><BookUser className="size-4" /> Fill from directory…</DropdownMenuItem>
+        )}
+        {directoryCols && directory.canEdit && (
+          <DropdownMenuItem onSelect={() => saveRowToDirectory(i)}><BookUser className="size-4" /> Save to directory</DropdownMenuItem>
+        )}
         <DropdownMenuItem disabled={i === 0} onSelect={() => moveRow(i, -1)}><ArrowUp className="size-4" /> Move up</DropdownMenuItem>
         <DropdownMenuItem disabled={i === t.rows.length - 1} onSelect={() => moveRow(i, 1)}><ArrowDown className="size-4" /> Move down</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => { addRow(i + 1); setEditRow(i + 1); }}><Plus className="size-4" /> Insert row below</DropdownMenuItem>
@@ -269,6 +325,7 @@ export function TableField({
   return (
     <div className="space-y-2" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) onBlur?.(); }}>
       <PeopleList id={peopleListId} />
+      <SupplierList id={supplierListId} />
       {showCards ? (
         <ul className="space-y-2" aria-label={fieldLabel}>
           {t.rows.map((row, ri) => (
@@ -281,7 +338,7 @@ export function TableField({
                 <div key={ci} className="space-y-1">
                   <Label htmlFor={`card-${ri}-${ci}`} className="text-xs">{c}{isReq(c) && <span className="text-destructive" aria-label="required"> *</span>}</Label>
                   <Input id={`card-${ri}-${ci}`} type={colType(c)} inputMode={colType(c) === "text" ? undefined : colType(c) as any}
-                    list={columnKind(c) === "person" ? peopleListId : undefined}
+                    list={listFor(c, peopleListId, supplierListId)}
                     aria-invalid={!!cellProblem(c, row[ci])} title={cellProblem(c, row[ci]) ?? undefined}
                     className={cn(cellProblem(c, row[ci]) && "border-destructive")}
                     value={row[ci] ?? ""} disabled={disabled} onChange={(e) => setCell(ri, ci, e.target.value)} />
@@ -350,6 +407,8 @@ export function TableField({
         fieldLabel={fieldLabel}
         isReq={isReq}
       />
+      <DirectoryPicker open={pickFor !== null} onOpenChange={(o) => { if (!o) setPickFor(null); }}
+        contacts={directory.contacts} onPick={(c) => { if (pickFor !== null) fillFromDirectory(pickFor, c); setPickFor(null); }} />
       <ColumnManager open={manageCols} onOpenChange={setManageCols} table={t} onApply={(next) => onChange(next, 0)} />
     </div>
   );
@@ -380,8 +439,8 @@ function RowEditor({
             return (
               <div key={ci} className="space-y-1">
                 <Label htmlFor={`row-${ci}`}>{c}{isReq(c) && <span className="text-destructive" aria-label="required"> *</span>}</Label>
-                {columnKind(c) === "person" ? (
-                  <Input id={`row-${ci}`} list="row-editor-people" autoComplete="off" value={row[ci] ?? ""} onChange={(e) => onCell(rowIndex, ci, e.target.value)} />
+                {columnKind(c) === "person" || columnRole(c) === "organisation" ? (
+                  <Input id={`row-${ci}`} list={listFor(c, "row-editor-people", "row-editor-suppliers")} autoComplete="off" value={row[ci] ?? ""} onChange={(e) => onCell(rowIndex, ci, e.target.value)} />
                 ) : t === "text" ? (
                   <Textarea id={`row-${ci}`} rows={2} value={row[ci] ?? ""} onChange={(e) => onCell(rowIndex, ci, e.target.value)} />
                 ) : (
@@ -394,6 +453,7 @@ function RowEditor({
           })}
         </div>
         <PeopleList id="row-editor-people" />
+        <SupplierList id="row-editor-suppliers" />
         <DialogFooter><Button onClick={() => onOpenChange(false)}>Done</Button></DialogFooter>
       </DialogContent>
     </Dialog>
@@ -471,5 +531,28 @@ function ColumnManager({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DirectoryPicker({ open, onOpenChange, contacts, onPick }: {
+  open: boolean; onOpenChange: (o: boolean) => void; contacts: DirectoryContact[]; onPick: (c: DirectoryContact) => void;
+}) {
+  return (
+    <CommandDialog open={open} onOpenChange={onOpenChange}>
+      <CommandInput placeholder="Search contacts and suppliers…" />
+      <CommandList>
+        <CommandEmpty>No one in the directory matches.</CommandEmpty>
+        <CommandGroup heading="Contacts & suppliers">
+          {contacts.map((c) => (
+            <CommandItem key={c.id} value={`${c.name} ${c.organisation ?? ""} ${c.role_title ?? ""}`} onSelect={() => onPick(c)}>
+              <div className="min-w-0">
+                <div className="text-sm font-medium truncate">{contactLabel(c)}</div>
+                <div className="text-xs text-muted-foreground truncate">{[c.role_title, c.phone, c.email].filter(Boolean).join(" · ") || (c.kind === "supplier" ? "Supplier" : "Contact")}</div>
+              </div>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </CommandList>
+    </CommandDialog>
   );
 }

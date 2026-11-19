@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { EventSkeleton } from "@/components/event-workspace/event-skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -68,7 +69,7 @@ function EventDetail() {
   });
 
   const loading = event.isLoading || sections.isLoading || fields.isLoading || values.isLoading || extras.isLoading || customFields.isLoading || access.isLoading;
-  if (loading) return <div className="p-12 text-center text-muted-foreground" role="status">Loading event…</div>;
+  if (loading) return <EventSkeleton />;
   if (event.error || values.error) return <div className="p-12 text-center">This event couldn't be loaded. Check your connection and refresh the page.</div>;
   if (!event.data) return <div className="p-12 text-center">Event not found, or you don't have access to it.</div>;
 

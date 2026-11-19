@@ -9,7 +9,6 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Eye, Menu, X } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar";
 import { EventSaverProvider, useSaver, useSaverRevision, type ServerRow } from "@/hooks/use-event-saver";
 import { useAreaPermissions } from "@/hooks/use-event-access";
 import { useAuth } from "@/hooks/use-auth";
@@ -23,6 +22,7 @@ import {
 } from "./context";
 import { EventHeader } from "./event-header";
 import { PeopleProvider } from "@/components/fields/people-context";
+import { DirectoryProvider, useDirectoryQuery } from "@/components/fields/directory-context";
 import { EventNav, currentSectionLabel } from "./event-nav";
 import { EventHome } from "./event-home";
 import { AreaPanel } from "./area-panel";
@@ -74,8 +74,8 @@ function WorkspaceInner(props: WorkspaceProps) {
   useSaverRevision();
 
   const allAreas = useMemo(
-    () => buildEventStructure({ sections: props.sections, fields: props.fields, extras: props.extras, customFields: props.customFields, values: props.values }),
-    [props.sections, props.fields, props.extras, props.customFields, props.values],
+    () => buildEventStructure({ sections: props.sections, fields: props.fields, extras: props.extras, customFields: props.customFields, values: props.values, variant: (event as any)?.template_variant ?? null }),
+    [props.sections, props.fields, props.extras, props.customFields, props.values, event],
   );
   const getValue = useCallback((f: StructField) => saver.getValue(f.ref), [saver]);
 
@@ -107,15 +107,7 @@ function WorkspaceInner(props: WorkspaceProps) {
   const canRestore = props.canManageEvent && !asStakeholder && archived;
   const isAdmin = props.isAdmin && !asStakeholder;
 
-  // Give event content the width: tuck the main app menu away on larger screens.
-  const sidebar = useSidebar();
-  useEffect(() => {
-    if (sidebar.isMobile) return;
-    const was = sidebar.open;
-    sidebar.setOpen(false);
-    return () => { if (was) sidebar.setOpen(true); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // The main app menu stays however the person left it (R16).
 
   const view = search.view ?? (search.area ? "area" : "home");
   const active = view === "area" ? areas.find((a) => a.id === search.area || a.key === search.area) ?? null : null;
@@ -215,6 +207,7 @@ function WorkspaceInner(props: WorkspaceProps) {
     openAreaSettings: (a) => setSettingsArea(a),
   };
 
+  const directory = useDirectoryQuery(!preview);
   const peopleNames = useMemo(() => [...new Set([...profiles.values()])].sort((a, b) => a.localeCompare(b)), [profiles]);
   const nav = <EventNav />;
   const sectionLabel = currentSectionLabel(view, active, search);
@@ -222,6 +215,7 @@ function WorkspaceInner(props: WorkspaceProps) {
   return (
     <WorkspaceProvider value={ctx}>
       <PeopleProvider value={peopleNames}>
+      <DirectoryProvider value={directory.value}>
       <div className="min-h-full">
         <EventHeader
           backTo={props.backTo}
@@ -309,6 +303,7 @@ function WorkspaceInner(props: WorkspaceProps) {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      </DirectoryProvider>
       </PeopleProvider>
     </WorkspaceProvider>
   );

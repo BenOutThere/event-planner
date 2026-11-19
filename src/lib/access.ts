@@ -24,3 +24,9 @@ export const GLOBAL_ROLE_INFO: Record<string, { label: string; description: stri
   viewer: { label: "Viewer (staff)", description: "Views every event, including staff-only areas. Can't create events. Edits only where assigned with Can edit." },
   supplier: { label: "External stakeholder", description: "Sees only the events they're assigned to, at the assigned level. Never sees staff-only or manager-only areas." },
 };
+
+/** R20: one role per person. When someone has several (older data), the highest counts and is shown. */
+export const ROLE_RANK = ["admin", "lead", "member", "viewer", "supplier"] as const;
+export function primaryRole(roles: readonly string[]): (typeof ROLE_RANK)[number] | null {
+  return ROLE_RANK.find((r) => roles.includes(r)) ?? null;
+}

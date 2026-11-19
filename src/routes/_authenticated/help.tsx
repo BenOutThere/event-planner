@@ -64,13 +64,16 @@ function HelpPage() {
           <Section id="start" icon={Rocket} title="Getting started">
             <ol className="list-decimal pl-5 space-y-1">
               <li>Open <strong>Events</strong> and select an event. You land on its <strong>Event Home</strong>.</li>
-              <li>Use the list on the left to open any section (on a phone, tap the section button next to search).</li>
+              <li>Use the list on the left to open any section (on a phone, tap the section button next to search). For people who can edit, the dot beside each area shows how complete it is: an empty ring (nothing yet), half filled (some fields), full green (every field) or red (required information missing). Select a group heading to fold it away; the menu remembers. Event Home offers <em>Pick up where you left off</em> to reopen the last area you were in.</li>
               <li>Press <kbd className="rounded border px-1 text-xs">/</kbd> (or Ctrl/⌘ + K) to jump to <strong>Search</strong> at the top.</li>
-              <li>If you can edit, select <strong>Edit section</strong> to change information. Changes save automatically.</li>
+              <li>If you can edit, click any field (or its pencil) to change it. Changes save as you type; press <kbd className="rounded border px-1 text-xs">Esc</kbd> or <strong>Done</strong> when you're finished.</li>
             </ol>
-            <p>The main app menu folds away inside an event to give the content more room — select the menu icon at the top left to open it.</p>
+            <p>Select the menu icon at the top left to fold the main app menu away for more room, or to bring it back. It stays the way you leave it, including inside events.</p>
             <p>You sign in once at the OTG Control Centre and open Event Planner from its tile. Forgotten passwords are reset there too.</p>
-            <p><strong>New event</strong> (Events page) needs the event's real name and its start date. A best guess for the date is fine; you can change it later. Event names typed in capitals are shown in title case, e.g. “SUMMERNATS NEW ZEALAND” shows as “Summernats New Zealand”.</p>
+            <p>The <strong>Events</strong> page shows events as <em>Cards</em>, a month <em>Calendar</em> or a 12-month <em>Timeline</em>. Filter by status, event lead or dates, or turn on <em>My events</em> for the events you lead, are assigned to, or are responsible for an area in. Your view and filters are remembered on that device. Each card shows days to go and, for people who can edit, how many reviews are overdue and how many items are to do.</p>
+            <p><strong>New event</strong> (Events page) needs the event's real name, its start date and its type: <em>Major event</em> (every area) or <em>Smaller event</em> (the areas chosen for smaller events). People who manage an event can change its type from the ⋯ menu. Areas that already hold information always stay.</p>
+            <p><strong>Running an event again?</strong> Use <em>Copy a previous event</em> on the New event page, or <em>Copy to a new event…</em> in an event's ⋯ menu. The new event starts as a Draft that you lead, with the old event's own sections and fields, who's responsible for each area, any area restrictions, and the information in the areas you tick. Dates, uploaded files, reviews and people with access aren't copied. Only areas you can see are copied.</p>
+            <p>The new event form needs the event's real name and its start date. A best guess for the date is fine; you can change it later. Event names typed in capitals are shown in title case, e.g. “SUMMERNATS NEW ZEALAND” shows as “Summernats New Zealand”.</p>
           </Section>
 
           <Section id="home" icon={Home} title="Event Home">
@@ -107,7 +110,8 @@ function HelpPage() {
               <li>Sections open in a clean <strong>reading view</strong>: plain text, tappable phone numbers and emails, <em>Open map</em> for addresses, and Open/Preview/Download for documents.</li>
               <li>Contact tables can be sorted by selecting a column heading, and filtered when they have more than five rows. On a phone, rows show as labelled cards.</li>
               <li>Empty states are specific: <em>Not provided yet</em> (no information), <em>Not applicable for this event</em> (marked N/A), and <em>Not set up yet</em> (the section has no fields).</li>
-              <li>Editors see <strong>Edit section</strong>. In edit mode you get inputs, table tools, help text, required markers (*), <em>Only fields still to fill</em>, and <em>Add field or sub-section</em>. Select <strong>Done editing</strong> to return to reading view.</li>
+              <li>Editors can click a single field to edit just that one, then press <kbd className="rounded border px-1 text-xs">Esc</kbd> or <strong>Done</strong>. Links, buttons and table tools inside a field still work as normal; use the field's pencil to edit a table.</li>
+              <li>To work through a whole section, select <strong>Edit all fields</strong>. In edit mode you get inputs, table tools, help text, required markers (*), <em>Only fields still to fill</em>, and <em>Add field or sub-section</em>. Select <strong>Done editing</strong> or press <kbd className="rounded border px-1 text-xs">Esc</kbd> to return to reading view.</li>
               <li>Each field and section has a direct link (link icon, or <em>Copy link to this section</em> in the ⋯ menu).</li>
             </ul>
           </Section>
@@ -143,7 +147,7 @@ function HelpPage() {
             <ul>
               <li>All staff can read, search and ask company-wide plans. An event's plan can be read by anyone with access to that event.</li>
               <li><strong>Admins and Leads</strong> upload plans (PDF or Word, up to 50 MB, several at once). On a plan's page, the ⋯ menu lets them edit details, replace the file with a new version, re-read its text and sections, link it to an event (or make it company-wide again) and delete it.</li>
-              <li>Admins manage the list of categories on the <strong>Admin</strong> page.</li>
+              <li>Plans are filtered by eight main categories: Safety, Medical, Traffic, Site, Competition, Security, Comms and SOP. More detailed categories (often the sections of a large plan, like “17 Medical operations”) are grouped under one of them and still found by search. Admins manage this on the <strong>Admin</strong> page under <em>Manage categories</em>, where a main category is suggested for anything not grouped yet.</li>
               <li>The text inside PDF and Word (.docx) files is searchable. Older .doc files and scanned PDFs are found by title, description and category only — save as .docx (or a text PDF) and replace the file.</li>
               <li>External stakeholders can't see the company-wide plans. They can see an event's plan only if they've been given access to that event.</li>
             </ul>
@@ -178,6 +182,7 @@ function HelpPage() {
               <li><strong>On track</strong> (green), <strong>Behind</strong> (amber) or <strong>At risk</strong> (red). More than 6 months out, 25% is on track; within 2 months it takes 75%; in the last 2 weeks, 90%.</li>
               <li>Events that are on now or finished aren't graded.</li>
               <li>The Events page shows each event's days to go, readiness and To do count (for people who can edit it).</li>
+              <li><strong>My work</strong> (main menu) lists the areas you're responsible for in upcoming events, soonest first, with each one's review state and anything still missing. If you lead an event, it also says how many of its areas have no one responsible.</li>
             </ul>
             <p><strong>Planning coverage</strong> is still shown underneath: the share of all fields with information entered. Neither readiness nor coverage means the information has been checked or the event is operationally ready, and neither changes the event status.</p>
           </Section>
@@ -189,7 +194,8 @@ function HelpPage() {
               <li><strong>Manage columns</strong> renames, reorders, adds or removes columns, with a warning before information would be lost.</li>
               <li>If two people edit different rows or cells at the same time, both changes are kept. If they change the same cell, you're asked which version to keep.</li>
               <li>Columns headed <em>Email</em> or <em>Phone</em>/<em>Mobile</em> are checked: anything that isn't an email address or phone number is marked with a warning so it can be fixed. It's still saved.</li>
-              <li>In columns headed <em>Name</em>, <em>Person</em> or <em>Contact</em>, OTG people are suggested as you type (in the row window and on phones). Anyone else can still be typed.</li>
+              <li>In columns headed <em>Name</em>, <em>Person</em> or <em>Contact</em>, OTG people and directory contacts are suggested as you type (in the row window and on phones), and <em>Company</em> or <em>Supplier</em> columns suggest directory suppliers. Anyone else can still be typed.</li>
+              <li><strong>Contacts &amp; suppliers</strong> (main menu, OTG staff) is the shared directory. Pick someone from it and the row's empty company, phone and email cells fill in; you add their role for this event. Use <em>Fill from directory…</em> or <em>Save to directory</em> in a row's ⋯ menu. Admins, Leads and Members can add and change entries; external stakeholders never see the directory. Changing an entry doesn't change details already in events.</li>
             </ul>
           </Section>
 
@@ -212,7 +218,7 @@ function HelpPage() {
           </Section>
 
           <Section id="access" icon={Users} title="Who can see and edit">
-            <p><strong>Global role</strong> — what someone can do across the app:</p>
+            <p><strong>Global role</strong> — what someone can do across the app. Each person has one role, shown under their name in the main menu and on the Admin page; admins change it there.</p>
             <ul>
               {(["admin", "lead", "member", "viewer", "supplier"] as const).map((r) => (
                 <li key={r}><strong>{GLOBAL_ROLE_INFO[r].label}</strong> — {GLOBAL_ROLE_INFO[r].description}</li>
@@ -239,8 +245,10 @@ function HelpPage() {
           <Section id="template" icon={LayoutTemplate} title="Template builder (admins)">
             <ul>
               <li>The outline lists areas and sub-sections; select one to edit it. Set its name, help text, navigation group and <em>Who can see this area</em>.</li>
+              <li><strong>Included for</strong> sets which event types show an area: <em>Major event</em>, <em>Smaller event</em> or both. Areas ticked for both are the common core.</li>
               <li>Fields have a name, type, help text, <em>Required</em>, <em>Allow “Not applicable”</em> and, for tables, starting rows and completion rules.</li>
               <li><strong>Suggested starter fields</strong> appear for common areas (Operations, Marketing, Commercial, Scope, Audience, Event dates). They're optional; adding them creates empty fields only.</li>
+              <li>To reorder, drag an area, sub-section or field by its handle (⋮⋮), or use the Up and Down arrows (on phones and with a keyboard). The new order applies to every event.</li>
               <li>Renaming or reordering keeps saved information attached. Removing something that holds information archives it instead.</li>
               <li><strong>Preview</strong> shows the template as an event. Nothing typed there is saved.</li>
             </ul>

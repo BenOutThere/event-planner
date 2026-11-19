@@ -89,7 +89,7 @@ export function SearchView() {
     queryFn: async () => {
       const [vals, events, secs, flds, extras, custom, perms] = await Promise.all([
         supabase.rpc("search_event_values", { _q: dq }),
-        supabase.from("events").select("id, name").neq("stage", "archived"),
+        supabase.from("events").select("id, name, template_variant").neq("stage", "archived"),
         supabase.from("template_sections").select("*"),
         supabase.from("template_fields").select("*"),
         supabase.from("event_section_extras").select("*"),
@@ -107,6 +107,7 @@ export function SearchView() {
           extras: (extras.data ?? []).filter((x: any) => x.event_id === e.id) as any,
           customFields: (custom.data ?? []).filter((x: any) => x.event_id === e.id) as any,
           values: rows as any,
+          variant: (e as any).template_variant ?? null,
         }).filter((a) => canRead.get(`${e.id}:${a.id}`) !== false);
         const byKey = new Map(rows.map((r: any) => [refKey(r), r]));
         const hits = searchEvent(areas, (f) => byKey.get(f.refKey) ?? null, dq);

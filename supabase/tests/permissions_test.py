@@ -44,6 +44,7 @@ def n_values(p):  # field values containing "secretword" a person can find
 def n_docs(p): return sum(visible(p, a) for a in (O, S, M))
 
 COMPLETED = f"update eventplanner.events set stage='completed' where id='{A}';"
+DIRECTORY = "insert into eventplanner.directory_contacts (name, organisation) values ('Sam Security', 'Acme Security');"
 ARCHIVED = COMPLETED + f" update eventplanner.events set stage='archived' where id='{A}';"
 
 CHECKS = [
@@ -84,8 +85,8 @@ CHECKS = [
  ('Ops plans', 'Open company SOP file', "select count(*) from storage.objects where bucket_id='eventplanner-ops-plans' and name like 'sop/%'", lambda p: int(p in STAFF)),
  ('Ops plans', 'Upload a company SOP', "insert into storage.objects (bucket_id,name) values ('eventplanner-ops-plans','sop/new.pdf') returning 1", OPS_MANAGERS),
  ('Ops plans', "Upload Event A's plan", f"insert into storage.objects (bucket_id,name) values ('eventplanner-ops-plans','events/{A}/new.pdf') returning 1", OPS_MANAGERS | MANAGE_A),
- ('Ops plans', 'Read categories', "select count(*) from eventplanner.ops_categories", lambda p: int(p in STAFF)),
- ('Ops plans', 'Add a category', "insert into eventplanner.ops_categories (name) values ('Medical') returning 1", OPS_MANAGERS),
+ ('Ops plans', 'Read categories', "select count(*) from eventplanner.ops_categories", lambda p: 9 if p in STAFF else 0),  # 8 main categories (R19) + 1 seeded
+ ('Ops plans', 'Add a category', "insert into eventplanner.ops_categories (name) values ('Crowd modelling') returning 1", OPS_MANAGERS),
  ('Template', 'Read the template', "select count(*) from eventplanner.template_sections", lambda p: 4 if p in MEMBERS else 0),  # 3 seeded + Site Information (R10)
  ('Template', 'Change the template', f"update eventplanner.template_sections set title='x' where id='{O}' returning 1", {'Admin'}),
  ('People', 'See names (profiles)', "select count(*) > 0 from eventplanner.profiles", lambda p: 't' if p in MEMBERS else 'f'),
@@ -108,6 +109,19 @@ CHECKS = [
  ('Archive', 'All-events search skips archived A', "select count(*) from eventplanner.search_event_values('secretword')", lambda p: int(p in READ_B), ARCHIVED),
  ('Archive', 'Search inside archived A still works', f"select count(*) from eventplanner.search_event_values('secretword', '{A}')", lambda p: sum(visible(p, a) for a in (O, S, M)), ARCHIVED),
  ('Archive', 'All-events plan search skips archived A', "select count(*) from eventplanner.search_ops_documents('secretword', null, true)", lambda p: int(p in STAFF), ARCHIVED),
+ ('Directory', 'See the contacts directory', "select count(*) from eventplanner.directory_contacts", lambda p: int(p in STAFF), DIRECTORY),
+ ('Directory', 'Add a contact', "insert into eventplanner.directory_contacts (name, phone) values ('Jo Supplier', '0412 345 678') returning 1", CREATORS),
+ ('Directory', 'Change a contact', "update eventplanner.directory_contacts set phone='0400 000 000' returning 1", CREATORS, DIRECTORY),
+ ('Directory', 'Delete a contact', "delete from eventplanner.directory_contacts returning 1", {'Admin'}, DIRECTORY),
+ ('Copy', 'Copy Event A to a new event', f"do $$ begin perform set_config('t.copy', eventplanner.copy_event('{A}', 'Event A 2028', '2028-02-24')::text, true); end $$; select 1", lambda p: 1 if p in CREATORS & READ_A else 'blocked'),
+ ('Copy', 'Copy Event B (no access for some)', f"do $$ begin perform eventplanner.copy_event('{B}', 'Event B 2028', '2028-03-10'); end $$; select 1", lambda p: 1 if p in CREATORS & READ_B else 'blocked'),
+ ('Copy', 'Copied information only from areas they can read', f"do $$ begin perform set_config('t.copy', eventplanner.copy_event('{A}', 'Event A 2028', '2028-02-24')::text, true); end $$; select count(*) from eventplanner.event_field_values where event_id = current_setting('t.copy')::uuid and value_text ilike '%secretword%'",
+   lambda p: sum(visible(p, a) for a in (O, S, M)) if p in CREATORS & READ_A else 'blocked'),
+ ('Copy', 'Copy is a Draft led by the person copying', f"do $$ begin perform set_config('t.copy', eventplanner.copy_event('{A}', 'Event A 2028', '2028-02-24')::text, true); end $$; select count(*) from eventplanner.events where id = current_setting('t.copy')::uuid and stage = 'draft' and lead_user_id = auth.uid()",
+   lambda p: 1 if p in CREATORS & READ_A else 'blocked'),
+ ('Copy', 'Copy keeps a per-event area restriction', f"do $$ begin perform set_config('t.copy', eventplanner.copy_event('{A}', 'Event A 2028', '2028-02-24')::text, true); end $$; select count(*) from eventplanner.event_area_meta where event_id = current_setting('t.copy')::uuid and area_id = '{O}' and restricted_to = 'managers'",
+   lambda p: 1 if p in CREATORS & READ_A else 'blocked', f"insert into eventplanner.event_area_meta (event_id, area_id, restricted_to) values ('{A}', '{O}', 'managers');"),
+ ('Copy', 'Copy needs a name and start date', f"do $$ begin perform eventplanner.copy_event('{A}', 'Untitled event', '2028-02-24'); end $$; select 1", lambda p: 'blocked'),
 ]
 
 def run(person, sql, setup=''):
@@ -119,6 +133,8 @@ def run(person, sql, setup=''):
     out = [l for l in p.stdout.split('\n') if l.strip()]
     if sql.lstrip().startswith('select'):
         return out[0] if out else '?'
+    if sql.lstrip().startswith('do '):  # a DO block, then a select that reports the result
+        return out[-1] if out else '?'
     return 'allowed' if out else 'blocked'
 
 def expected(exp, person, sql):
