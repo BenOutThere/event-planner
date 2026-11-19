@@ -69,7 +69,7 @@ insert into eventplanner.document_text (event_id,path,file_name,status,content) 
  ('20000000-0000-0000-0000-00000000000a','20000000-0000-0000-0000-00000000000a/10000000-0000-0000-0000-0000000000a0/open.pdf','open.pdf','indexed','open file secretword'),
  ('20000000-0000-0000-0000-00000000000a','20000000-0000-0000-0000-00000000000a/10000000-0000-0000-0000-0000000000b0/staff.pdf','staff.pdf','indexed','staff file secretword'),
  ('20000000-0000-0000-0000-00000000000a','20000000-0000-0000-0000-00000000000a/10000000-0000-0000-0000-0000000000c0/manager.pdf','manager.pdf','indexed','manager file secretword');
-insert into eventplanner.ops_categories (id,name) values ('30000000-0000-0000-0000-000000000001','Safety');
+insert into eventplanner.ops_categories (id,name) values ('30000000-0000-0000-0000-000000000001','17 Medical operations');
 insert into eventplanner.ops_documents (title,storage_path,file_name,status,content,event_id) values
  ('Company SOP','sop/company-sop.pdf','company-sop.pdf','indexed','sop secretword',null),
  ('Event A plan','events/20000000-0000-0000-0000-00000000000a/plan.pdf','plan.pdf','indexed','plan secretword','20000000-0000-0000-0000-00000000000a');

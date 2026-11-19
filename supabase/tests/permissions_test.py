@@ -85,7 +85,7 @@ CHECKS = [
  ('Ops plans', 'Open company SOP file', "select count(*) from storage.objects where bucket_id='eventplanner-ops-plans' and name like 'sop/%'", lambda p: int(p in STAFF)),
  ('Ops plans', 'Upload a company SOP', "insert into storage.objects (bucket_id,name) values ('eventplanner-ops-plans','sop/new.pdf') returning 1", OPS_MANAGERS),
  ('Ops plans', "Upload Event A's plan", f"insert into storage.objects (bucket_id,name) values ('eventplanner-ops-plans','events/{A}/new.pdf') returning 1", OPS_MANAGERS | MANAGE_A),
- ('Ops plans', 'Read categories', "select count(*) from eventplanner.ops_categories", lambda p: 8 if p in STAFF else 0),  # the 8 main categories (R19)
+ ('Ops plans', 'Read categories', "select count(*) from eventplanner.ops_categories", lambda p: 9 if p in STAFF else 0),  # 8 main categories (R19) + 1 seeded
  ('Ops plans', 'Add a category', "insert into eventplanner.ops_categories (name) values ('Crowd modelling') returning 1", OPS_MANAGERS),
  ('Template', 'Read the template', "select count(*) from eventplanner.template_sections", lambda p: 4 if p in MEMBERS else 0),  # 3 seeded + Site Information (R10)
  ('Template', 'Change the template', f"update eventplanner.template_sections set title='x' where id='{O}' returning 1", {'Admin'}),
