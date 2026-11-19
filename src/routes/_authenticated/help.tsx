@@ -179,6 +179,7 @@ function HelpPage() {
               <li><strong>On track</strong> (green), <strong>Behind</strong> (amber) or <strong>At risk</strong> (red). More than 6 months out, 25% is on track; within 2 months it takes 75%; in the last 2 weeks, 90%.</li>
               <li>Events that are on now or finished aren't graded.</li>
               <li>The Events page shows each event's days to go, readiness and To do count (for people who can edit it).</li>
+              <li><strong>My work</strong> (main menu) lists the areas you're responsible for in upcoming events, soonest first, with each one's review state and anything still missing. If you lead an event, it also says how many of its areas have no one responsible.</li>
             </ul>
             <p><strong>Planning coverage</strong> is still shown underneath: the share of all fields with information entered. Neither readiness nor coverage means the information has been checked or the event is operationally ready, and neither changes the event status.</p>
           </Section>

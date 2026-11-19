@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
+import { Route as AuthenticatedMyWorkRouteImport } from './routes/_authenticated/my-work'
 import { Route as AuthenticatedOperationsRouteImport } from './routes/_authenticated/operations'
 import { Route as AuthenticatedAdminMoveImportRouteImport } from './routes/_authenticated/admin.move-import'
 import { Route as AuthenticatedAdminTemplatePreviewRouteImport } from './routes/_authenticated/admin.template-preview'
@@ -39,6 +40,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 const AuthenticatedHelpRoute = AuthenticatedHelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedMyWorkRoute = AuthenticatedMyWorkRouteImport.update({
+  id: '/my-work',
+  path: '/my-work',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedOperationsRoute = AuthenticatedOperationsRouteImport.update({
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help': typeof AuthenticatedHelpRoute
+  '/my-work': typeof AuthenticatedMyWorkRoute
   '/operations': typeof AuthenticatedOperationsRoute
   '/admin/move-import': typeof AuthenticatedAdminMoveImportRoute
   '/admin/template-preview': typeof AuthenticatedAdminTemplatePreviewRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help': typeof AuthenticatedHelpRoute
+  '/my-work': typeof AuthenticatedMyWorkRoute
   '/operations': typeof AuthenticatedOperationsRoute
   '/admin/move-import': typeof AuthenticatedAdminMoveImportRoute
   '/admin/template-preview': typeof AuthenticatedAdminTemplatePreviewRoute
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/help': typeof AuthenticatedHelpRoute
+  '/_authenticated/my-work': typeof AuthenticatedMyWorkRoute
   '/_authenticated/operations': typeof AuthenticatedOperationsRoute
   '/_authenticated/admin/move-import': typeof AuthenticatedAdminMoveImportRoute
   '/_authenticated/admin/template-preview': typeof AuthenticatedAdminTemplatePreviewRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/help'
+    | '/my-work'
     | '/operations'
     | '/admin/move-import'
     | '/admin/template-preview'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/help'
+    | '/my-work'
     | '/operations'
     | '/admin/move-import'
     | '/admin/template-preview'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/_authenticated/dashboard'
     | '/_authenticated/help'
+    | '/_authenticated/my-work'
     | '/_authenticated/operations'
     | '/_authenticated/admin/move-import'
     | '/_authenticated/admin/template-preview'
@@ -203,6 +215,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof AuthenticatedHelpRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/my-work': {
+      id: '/_authenticated/my-work'
+      path: '/my-work'
+      fullPath: '/my-work'
+      preLoaderRoute: typeof AuthenticatedMyWorkRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/operations': {
@@ -267,6 +286,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
+  AuthenticatedMyWorkRoute: typeof AuthenticatedMyWorkRoute
   AuthenticatedOperationsRoute: typeof AuthenticatedOperationsRoute
   AuthenticatedAdminMoveImportRoute: typeof AuthenticatedAdminMoveImportRoute
   AuthenticatedAdminTemplatePreviewRoute: typeof AuthenticatedAdminTemplatePreviewRoute
@@ -280,6 +300,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHelpRoute: AuthenticatedHelpRoute,
+  AuthenticatedMyWorkRoute: AuthenticatedMyWorkRoute,
   AuthenticatedOperationsRoute: AuthenticatedOperationsRoute,
   AuthenticatedAdminMoveImportRoute: AuthenticatedAdminMoveImportRoute,
   AuthenticatedAdminTemplatePreviewRoute:
