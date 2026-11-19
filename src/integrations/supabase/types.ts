@@ -1025,6 +1025,8 @@ export type Database = {
       events: {
         Row: {
           accreditation_notes: string | null
+          archived_at: string | null
+          archived_by: string | null
           awards_notes: string | null
           budget_estimate: number | null
           bump_in_start: string | null
@@ -1062,6 +1064,8 @@ export type Database = {
         }
         Insert: {
           accreditation_notes?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           awards_notes?: string | null
           budget_estimate?: number | null
           bump_in_start?: string | null
@@ -1099,6 +1103,8 @@ export type Database = {
         }
         Update: {
           accreditation_notes?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           awards_notes?: string | null
           budget_estimate?: number | null
           bump_in_start?: string | null
@@ -1726,7 +1732,9 @@ export type Database = {
         | "in_planning"
         | "confirmed"
         | "delivery_ready"
+        | "live"
         | "completed"
+        | "archived"
       milestone_status: "pending" | "in_progress" | "done" | "missed"
       risk_level: "low" | "medium" | "high" | "critical"
       supplier_status:
@@ -1871,7 +1879,9 @@ export const Constants = {
         "in_planning",
         "confirmed",
         "delivery_ready",
+        "live",
         "completed",
+        "archived",
       ],
       milestone_status: ["pending", "in_progress", "done", "missed"],
       risk_level: ["low", "medium", "high", "critical"],

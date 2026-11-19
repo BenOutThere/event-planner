@@ -43,6 +43,9 @@ def n_values(p):  # field values containing "secretword" a person can find
     return sum(visible(p, a) for a in (O, S, M)) + (p in READ_B)
 def n_docs(p): return sum(visible(p, a) for a in (O, S, M))
 
+COMPLETED = f"update eventplanner.events set stage='completed' where id='{A}';"
+ARCHIVED = COMPLETED + f" update eventplanner.events set stage='archived' where id='{A}';"
+
 CHECKS = [
  # (group, label, sql, expected: set of people allowed, or function person -> expected count)
  ('Events', 'See Event A', f"select count(*) from eventplanner.events where id='{A}'", READ_A),
@@ -87,11 +90,26 @@ CHECKS = [
  ('People', 'Assign someone to Event A', f"insert into eventplanner.event_members (event_id, user_id, access_level) values ('{A}','{uid('Tile but no role')}','view') returning 1", MANAGE_A),
  ('People', 'Reactivate / deactivate yourself', "update eventplanner.profiles set is_active = true where id = auth.uid() returning 1", NOBODY),
  ('People', 'Open Event Planner (ensure_member)', "select eventplanner.ensure_member()", lambda p: 't' if p in MEMBERS else 'f'),
+ # R5: lifecycle status and archiving (Event A archived by the setup step)
+ ('Archive', 'Archive Event A while Draft', f"update eventplanner.events set stage='archived' where id='{A}' returning 1", NOBODY),
+ ('Archive', 'Archive Event A once Completed', f"update eventplanner.events set stage='archived' where id='{A}' returning 1", MANAGE_A, COMPLETED),
+ ('Archive', 'See archived Event A', f"select count(*) from eventplanner.events where id='{A}'", READ_A, ARCHIVED),
+ ('Archive', 'Restore archived Event A', f"update eventplanner.events set stage='completed' where id='{A}' returning 1", MANAGE_A, ARCHIVED),
+ ('Archive', 'Rename archived Event A', f"update eventplanner.events set name='x' where id='{A}' returning 1", NOBODY, ARCHIVED),
+ ('Archive', 'Read archived A (open area)', f"select count(*) from eventplanner.event_field_values where event_id='{A}' and section_id='{O}'", lambda p: int(visible(p, O)), ARCHIVED),
+ ('Archive', 'Edit archived A (open area)', f"update eventplanner.event_field_values set value_text='x' where event_id='{A}' and section_id='{O}' returning 1", NOBODY, ARCHIVED),
+ ('Archive', 'Upload file to archived A', f"insert into storage.objects (bucket_id,name) values ('eventplanner-files','{A}/{O}/new.pdf') returning 1", NOBODY, ARCHIVED),
+ ('Archive', 'Assign someone to archived A', f"insert into eventplanner.event_members (event_id, user_id, access_level) values ('{A}','{uid('Tile but no role')}','view') returning 1", NOBODY, ARCHIVED),
+ ('Archive', 'Mark archived A reviewed', f"insert into eventplanner.event_area_meta (event_id, area_id, reviewed_at, reviewed_by) values ('{A}','{O}', now(), auth.uid()) returning 1", NOBODY, ARCHIVED),
+ ('Archive', "Upload archived A's plan", f"insert into storage.objects (bucket_id,name) values ('eventplanner-ops-plans','events/{A}/new.pdf') returning 1", NOBODY, ARCHIVED),
+ ('Archive', 'All-events search skips archived A', "select count(*) from eventplanner.search_event_values('secretword')", lambda p: int(p in READ_B), ARCHIVED),
+ ('Archive', 'Search inside archived A still works', f"select count(*) from eventplanner.search_event_values('secretword', '{A}')", lambda p: sum(visible(p, a) for a in (O, S, M)), ARCHIVED),
+ ('Archive', 'All-events plan search skips archived A', "select count(*) from eventplanner.search_ops_documents('secretword', null, true)", lambda p: int(p in STAFF), ARCHIVED),
 ]
 
-def run(person, sql):
+def run(person, sql, setup=''):
     claims = json.dumps({'sub': uid(person), 'role': 'authenticated'})
-    script = f"begin; set local role authenticated; set local request.jwt.claims = '{claims}'; {sql}; rollback;"
+    script = f"begin; {setup} set local role authenticated; set local request.jwt.claims = '{claims}'; {sql}; rollback;"
     p = subprocess.run(PSQL + ['-X', '-q', '-tA'], input=script, capture_output=True, text=True)
     if p.returncode or 'ERROR' in p.stderr:
         return 'blocked'
@@ -109,10 +127,10 @@ people = list(P)
 fails = 0; total = 0
 print('| Group | Check | ' + ' | '.join(people) + ' |')
 print('|---|---|' + '---|' * len(people))
-for group, label, sql, exp in CHECKS:
+for group, label, sql, exp, *setup in CHECKS:
     cells = []
     for person in people:
-        got, want = run(person, sql), expected(exp, person, sql)
+        got, want = run(person, sql, *setup), expected(exp, person, sql)
         total += 1
         short = {'allowed': '✅', 'blocked': '⛔', 't': '✅', 'f': '⛔'}.get(got, got)
         if got != want:

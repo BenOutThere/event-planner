@@ -71,6 +71,10 @@ export type WorkspaceCtx = {
   getValue: (f: StructField) => any;
   canEdit: boolean;
   canManage: boolean;
+  /** The event is archived: everything is read-only until it's restored. */
+  archived: boolean;
+  /** Can restore this archived event (people who manage it). */
+  canRestore: boolean;
   isAdmin: boolean;
   asStakeholder: boolean;
   userId: string | null;

@@ -16,11 +16,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, CalendarDays, ChevronsUpDown, MapPin, MoreHorizontal, Search, Info, Link2, Settings2, Trash2, Users, X,
-  Loader2, AlertTriangle, CheckCircle2, RotateCw, Eye, Check,
+  Loader2, AlertTriangle, CheckCircle2, RotateCw, Eye, Check, Archive, ArchiveRestore, Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSaver, useSaverStatus } from "@/hooks/use-event-saver";
-import { STAGE_INFO, STAGE_ORDER, type EventStage } from "@/lib/event-status";
+import { SETTABLE_STAGES, STAGE_INFO, stagePrompt, type EventStage } from "@/lib/event-status";
 import { formatAuRange } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "./context";
@@ -53,7 +53,7 @@ function EventSwitcher() {
   const events = useQuery({
     queryKey: ["event-switcher"],
     enabled: !preview && open,
-    queryFn: async () => (await supabase.from("events").select("id, name, proposed_date, end_date").order("proposed_date", { ascending: true, nullsFirst: false })).data ?? [],
+    queryFn: async () => (await supabase.from("events").select("id, name, proposed_date, end_date").neq("stage", "archived").order("proposed_date", { ascending: true, nullsFirst: false })).data ?? [],
   });
   if (preview) return null;
   return (
@@ -145,19 +145,25 @@ export function EventHeader({
   realIsAdmin: boolean;
   onToggleStakeholder: () => void;
 }) {
-  const { event, canEdit, canManage, isAdmin, preview, asStakeholder, go } = useWorkspace();
+  const { event, canEdit, canManage, archived, canRestore, isAdmin, preview, asStakeholder, go, today } = useWorkspace();
   const qc = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [accessOpen, setAccessOpen] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const [dismissedPrompt, setDismissedPrompt] = useState<string | null>(null);
   const info = STAGE_INFO[event.stage] ?? STAGE_INFO.draft;
+  const prompt = canManage && !preview ? stagePrompt(event.stage, event.proposed_date, event.end_date, today) : null;
 
   async function setStage(stage: EventStage) {
     const { error } = await supabase.from("events").update({ stage }).eq("id", event.id);
-    if (error) return toast.error("Couldn't change the status. Only people who manage this event can do this.");
-    toast.success(`Status set to ${STAGE_INFO[stage].label}`);
+    if (error) {
+      return toast.error(error.code === "22023" || error.code === "42501" ? error.message : "Couldn't change the status. Only people who manage this event can do this.");
+    }
+    toast.success(stage === "archived" ? `Archived ${event.name}` : event.stage === "archived" ? `Restored ${event.name}` : `Status set to ${STAGE_INFO[stage].label}`);
     qc.invalidateQueries({ queryKey: ["event", event.id] });
     qc.invalidateQueries({ queryKey: ["events"] });
+    qc.invalidateQueries({ queryKey: ["my-event-access"] });
   }
 
   async function deleteEvent() {
@@ -238,7 +244,7 @@ export function EventHeader({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuItem onSelect={copyEventLink}><Link2 className="size-4" /> Copy link to event</DropdownMenuItem>
-                {(canManage || isAdmin) && (
+                {(canManage || (isAdmin && !archived)) && (
                   <DropdownMenuItem onSelect={() => setAccessOpen(true)}><Users className="size-4" /> People with access…</DropdownMenuItem>
                 )}
                 {canManage && (
@@ -246,10 +252,18 @@ export function EventHeader({
                     <DropdownMenuSubTrigger><Settings2 className="size-4" /> Change status</DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
                       <DropdownMenuRadioGroup value={event.stage} onValueChange={(v) => setStage(v as EventStage)}>
-                        {STAGE_ORDER.map((s) => <DropdownMenuRadioItem key={s} value={s}>{STAGE_INFO[s].label}</DropdownMenuRadioItem>)}
+                        {SETTABLE_STAGES.map((s) => <DropdownMenuRadioItem key={s} value={s}>{STAGE_INFO[s].label}</DropdownMenuRadioItem>)}
                       </DropdownMenuRadioGroup>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
+                )}
+                {canManage && (
+                  event.stage === "completed"
+                    ? <DropdownMenuItem onSelect={() => setConfirmArchive(true)}><Archive className="size-4" /> Archive event…</DropdownMenuItem>
+                    : <DropdownMenuItem disabled><Archive className="size-4" /> Archive event (set to Completed first)</DropdownMenuItem>
+                )}
+                {canRestore && (
+                  <DropdownMenuItem onSelect={() => setStage("completed")}><ArchiveRestore className="size-4" /> Restore event</DropdownMenuItem>
                 )}
                 {realIsAdmin && (
                   <>
@@ -272,7 +286,42 @@ export function EventHeader({
         {canEdit && <div className="md:hidden w-full -mt-1 empty:hidden"><SaveIndicator /></div>}
       </div>
 
+      {archived && (
+        <div className="border-t bg-muted/60">
+          <div className="mx-auto max-w-[90rem] px-4 lg:px-6 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <Archive className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="flex-1 min-w-0">This event is archived. You can read everything, but nothing can be changed.</span>
+            {canRestore && <Button size="sm" variant="outline" onClick={() => setStage("completed")}><ArchiveRestore className="size-4" /> Restore event</Button>}
+          </div>
+        </div>
+      )}
+      {prompt && dismissedPrompt !== `${event.stage}:${prompt.to}` && (
+        <div className="border-t bg-info/10">
+          <div className="mx-auto max-w-[90rem] px-4 lg:px-6 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <Lightbulb className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="flex-1 min-w-0">{prompt.message} It's currently <strong>{info.label}</strong>.</span>
+            <Button size="sm" variant="outline" onClick={() => (prompt.to === "archived" ? setConfirmArchive(true) : setStage(prompt.to))}>{prompt.action}</Button>
+            <Button size="sm" variant="ghost" onClick={() => setDismissedPrompt(`${event.stage}:${prompt.to}`)}>Not now</Button>
+          </div>
+        </div>
+      )}
+
       {accessOpen && <AccessDialog open={accessOpen} onOpenChange={setAccessOpen} />}
+
+      <AlertDialog open={confirmArchive} onOpenChange={setConfirmArchive}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive “{event.name}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The event moves off the dashboard and out of "All events" search, and becomes read-only for everyone. Nothing is deleted: its information, files, history and access are all kept. Anyone who manages the event can restore it at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep it open</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmArchive(false); void setStage("archived"); }}>Archive event</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>

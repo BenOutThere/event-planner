@@ -88,7 +88,7 @@ export function SearchView() {
     queryFn: async () => {
       const [vals, events, secs, flds, extras, custom, perms] = await Promise.all([
         supabase.rpc("search_event_values", { _q: dq }),
-        supabase.from("events").select("id, name"),
+        supabase.from("events").select("id, name").neq("stage", "archived"),
         supabase.from("template_sections").select("*"),
         supabase.from("template_fields").select("*"),
         supabase.from("event_section_extras").select("*"),

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
   Home, Search, BookOpen, FolderOpen, Clock, Users, Layers, Pencil, Save, Table as TableIcon, LayoutTemplate,
-  HelpCircle, LifeBuoy, Rocket, Download, ArrowRight, ListTodo, Lock, ClipboardList,
+  HelpCircle, LifeBuoy, Rocket, Download, ArrowRight, ListTodo, Lock, ClipboardList, Archive,
 } from "lucide-react";
 import { ACCESS_INFO, GLOBAL_ROLE_INFO } from "@/lib/access";
 
@@ -28,6 +28,7 @@ const sections = [
   { id: "docs", label: "Documents & links", icon: FolderOpen },
   { id: "ops", label: "Operations plans", icon: ClipboardList },
   { id: "currency", label: "Ownership & reviews", icon: Clock },
+  { id: "status", label: "Event status & archiving", icon: Archive },
   { id: "attention", label: "Needs attention", icon: ListTodo },
   { id: "tables", label: "Tables", icon: TableIcon },
   { id: "saving", label: "How saving works", icon: Save },
@@ -157,6 +158,17 @@ function HelpPage() {
             </ul>
           </Section>
 
+          <Section id="status" icon={Archive} title="Event status & archiving">
+            <p>Every event has a status that people who manage it set (⋯ → <em>Change status</em>):</p>
+            <ul>
+              <li><strong>Draft</strong> → <strong>In planning</strong> → <strong>Confirmed</strong> → <strong>Delivery ready</strong> → <strong>Live</strong> → <strong>Completed</strong> → <strong>Archived</strong>.</li>
+              <li>The app suggests the next status from the event dates: <em>In planning</em> when a draft is within 90 days of starting, <em>Live</em> while the event is on, <em>Completed</em> once its dates have passed, and archiving 30 days after it ends. A suggestion appears under the event name for people who manage the event; select the button to accept it or <em>Not now</em>. Status never changes by itself.</li>
+              <li><strong>Archive event</strong> (⋯ menu) is available once an event is <em>Completed</em>. An archived event leaves the Events list and <em>All events</em> search, and becomes read-only for everyone, admins included. Nothing is deleted: information, files, history and access are kept.</li>
+              <li>To see archived events, turn on <em>Show archived</em> on the Events page. Searching inside an archived event still works.</li>
+              <li><strong>Restore event</strong> (⋯ menu, or the button on the archived banner) brings it back as <em>Completed</em>. Anyone who manages the event can restore it.</li>
+            </ul>
+          </Section>
+
           <Section id="attention" icon={ListTodo} title="Needs attention (editors)">
             <p>A checklist of configured required fields still without information, sections overdue for review or changed since review, and sections not set up yet — each with a button to fix it.</p>
             <p><strong>Planning coverage</strong> is the share of fields with information entered. “All configured required fields have information” means only that — it doesn't mean the event information is complete, checked or operationally ready.</p>
@@ -229,7 +241,7 @@ function HelpPage() {
               <li>Area list, incomplete filter, continue where you left off → left-hand list; <em>Only fields still to fill</em> is in edit mode.</li>
               <li>Search this event → search box at the top (now with All events, result types and inside-document search).</li>
               <li>Planning coverage and missing required items → <em>Needs attention</em> and the Planning card on Event Home.</li>
-              <li>Status, copy event link, delete event → ⋯ menu at the top right.</li>
+              <li>Status, archive or restore, copy event link, delete event → ⋯ menu at the top right.</li>
               <li>Field and area links → link icon on a field; ⋯ → <em>Copy link to this section</em>.</li>
               <li>Files and links → still in their fields; also listed together in <em>Documents &amp; links</em>.</li>
               <li>Event assignments → <em>Admin</em> (admins) or ⋯ → <em>People with access</em>.</li>

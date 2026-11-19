@@ -99,8 +99,11 @@ function WorkspaceInner(props: WorkspaceProps) {
   const profiles = useMemo(() => new Map<string, string>((profilesQ.data ?? []).map((p: any) => [p.id, (p.display_name?.trim() || p.email) as string])), [profilesQ.data]);
   const docText = useMemo(() => new Map<string, DocTextRow>((docTextQ.data ?? []).map((d: any) => [d.path, d])), [docTextQ.data]);
 
-  const canEdit = props.canEdit && !asStakeholder;
-  const canManage = props.canManageEvent && !asStakeholder;
+  // An archived event is read-only for everyone (the database enforces this too).
+  const archived = event.stage === "archived";
+  const canEdit = props.canEdit && !asStakeholder && !archived;
+  const canManage = props.canManageEvent && !asStakeholder && !archived;
+  const canRestore = props.canManageEvent && !asStakeholder && archived;
   const isAdmin = props.isAdmin && !asStakeholder;
 
   // Give event content the width: tuck the main app menu away on larger screens.
@@ -175,7 +178,7 @@ function WorkspaceInner(props: WorkspaceProps) {
   }, [onSearchChange]);
 
   const ctx: WorkspaceCtx = {
-    eventId, event, preview, areas, getValue, canEdit, canManage, isAdmin, asStakeholder,
+    eventId, event, preview, areas, getValue, canEdit, canManage, archived, canRestore, isAdmin, asStakeholder,
     userId: props.userId,
     userName: (props.userId && profiles.get(props.userId)) || (user?.user_metadata as any)?.display_name || user?.email || "Someone",
     today: toDateOnly(new Date()),

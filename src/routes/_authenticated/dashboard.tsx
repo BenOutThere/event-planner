@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +41,7 @@ function Dashboard() {
   const canCreate = isAdmin || roles.includes("lead") || roles.includes("member");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("date");
+  const [showArchived, setShowArchived] = useState(false);
   const access = useMyEventAccess();
 
   const data = useQuery({
@@ -72,7 +75,9 @@ function Dashboard() {
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    const rows = (data.data ?? []).filter((e) => !needle || `${e.name} ${e.location ?? ""} ${e.venue ?? ""}`.toLowerCase().includes(needle));
+    const rows = (data.data ?? [])
+      .filter((e) => showArchived || e.stage !== "archived")
+      .filter((e) => !needle || `${e.name} ${e.location ?? ""} ${e.venue ?? ""}`.toLowerCase().includes(needle));
     const byName = (a: any, b: any) => a.name.localeCompare(b.name);
     return rows.slice().sort((a, b) => {
       if (sort === "name") return byName(a, b);
@@ -83,7 +88,8 @@ function Dashboard() {
       if (!b.proposed_date) return -1;
       return a.proposed_date.localeCompare(b.proposed_date);
     });
-  }, [data.data, q, sort]);
+  }, [data.data, q, sort, showArchived]);
+  const archivedCount = (data.data ?? []).filter((e) => e.stage === "archived").length;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
@@ -112,6 +118,12 @@ function Dashboard() {
             <SelectItem value="name">Name A–Z</SelectItem>
           </SelectContent>
         </Select>
+        {archivedCount > 0 && (
+          <div className="flex items-center gap-2">
+            <Switch id="show-archived" checked={showArchived} onCheckedChange={setShowArchived} />
+            <Label htmlFor="show-archived" className="text-sm font-normal">Show archived ({archivedCount})</Label>
+          </div>
+        )}
       </div>
 
       {data.isLoading ? (
