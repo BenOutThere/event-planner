@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { ALL_VARIANTS, VARIANTS } from "@/lib/variants";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -331,6 +332,28 @@ function SectionSettings({
               <datalist id="nav-groups">{groups.map((g) => <option key={g} value={g} />)}</datalist>
               <p className="text-xs text-muted-foreground">Groups areas under a heading in the event navigator.</p>
             </div>
+          )}
+          {isArea && (
+            <fieldset className="space-y-1.5 sm:col-span-2">
+              <legend className="text-sm font-medium">Included for</legend>
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                {VARIANTS.map((v) => {
+                  const current: string[] = section.variants?.length ? section.variants : ALL_VARIANTS;
+                  const on = current.includes(v.key);
+                  return (
+                    <label key={v.key} className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={on} disabled={on && current.length === 1}
+                        onCheckedChange={(c) => {
+                          const next = c ? [...new Set([...current, v.key])] : current.filter((x) => x !== v.key);
+                          if (next.length) saveSection({ variants: ALL_VARIANTS.filter((k) => next.includes(k)) }, "Saved: events of that type update straight away");
+                        }} />
+                      {v.label}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">Events show the areas for their type. An area that already has information in an event always stays in that event.</p>
+            </fieldset>
           )}
           {isArea && (
             <div className="space-y-1.5">

@@ -10,6 +10,8 @@ import { DateField } from "@/components/fields/date-field";
 import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { checkDateSequence } from "@/lib/dates";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { VARIANTS, type Variant } from "@/lib/variants";
 
 export const Route = createFileRoute("/_authenticated/events/new")({
   head: () => ({
@@ -33,6 +35,7 @@ function NewEvent() {
   const [venue, setVenue] = useState("");
   const [start, setStart] = useState<string | null>(null);
   const [end, setEnd] = useState<string | null>(null);
+  const [variant, setVariant] = useState<Variant>("major");
   const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   // One id per form: retries and double-clicks can never create a second event.
@@ -62,6 +65,7 @@ function NewEvent() {
         lead_user_id: user.id,
         created_by: user.id,
         stage: "draft",
+        template_variant: variant,
       });
       // 23505 = already created by an earlier attempt of this same form.
       if (error && (error as any).code !== "23505") throw error;
@@ -131,6 +135,18 @@ function NewEvent() {
             <DateField id="ev-end" ariaLabel="Event end date" value={end} onChange={setEnd} />
           </div>
         </div>
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">Event type</legend>
+          <RadioGroup value={variant} onValueChange={(v) => setVariant(v as Variant)} className="grid sm:grid-cols-2 gap-2">
+            {VARIANTS.map((v) => (
+              <label key={v.key} htmlFor={`variant-${v.key}`} className="flex items-start gap-2 rounded-lg border p-3 cursor-pointer has-[button[data-state=checked]]:border-primary">
+                <RadioGroupItem id={`variant-${v.key}`} value={v.key} className="mt-0.5" />
+                <span><span className="block text-sm font-medium">{v.label}</span><span className="block text-xs text-muted-foreground">{v.description}</span></span>
+              </label>
+            ))}
+          </RadioGroup>
+          <p className="text-xs text-muted-foreground">Sets which areas the event starts with. You can change it later from the event's ⋯ menu.</p>
+        </fieldset>
         {dateWarnings.length > 0 && (
           <p className="text-xs rounded-md border border-warning/50 bg-warning/15 px-3 py-2 flex items-start gap-1.5" role="alert">
             <AlertTriangle className="size-3.5 mt-0.5 shrink-0" aria-hidden /> {dateWarnings[0]} You can still create the event.

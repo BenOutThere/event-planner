@@ -290,6 +290,7 @@ export const updateTemplateSection = createServerFn({ method: "POST" })
         sort_order: z.number().int().optional(),
         nav_group: z.string().trim().max(60).nullable().optional(),
         restricted_to: z.enum(["staff", "managers"]).nullable().optional(),
+        variants: z.array(z.enum(["major", "smaller"])).min(1, "Choose at least one event type").optional(),
       }).refine((patch) => Object.keys(patch).length > 0, "No changes supplied"),
     }).parse(input),
   )

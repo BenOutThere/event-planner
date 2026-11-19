@@ -1,3 +1,4 @@
+import { areaInVariant } from "@/lib/variants";
 // Builds the structure an event displays: shared template areas/sub-sections/fields,
 // plus anything customised for this event only. Values are matched by stable keys
 // (section id + field key), so renaming or reordering never loses information.
@@ -47,7 +48,7 @@ export type StructArea = {
   hasSubsections: boolean;
 };
 
-type Tpl = { id: string; key: string; title: string; description: string | null; parent_id: string | null; sort_order: number; is_active: boolean; nav_group?: string | null };
+type Tpl = { id: string; key: string; title: string; description: string | null; parent_id: string | null; sort_order: number; is_active: boolean; nav_group?: string | null; variants?: string[] | null };
 type TplField = { id: string; section_id: string; key: string; label: string; kind: string; sort_order: number; is_required: boolean; allow_na?: boolean; multiline?: boolean; help_text?: string | null; default_table?: unknown; table_rules?: unknown; archived_at?: string | null; options?: unknown };
 type Extra = { id: string; title: string; description: string | null; sort_order: number; parent_section_id: string | null };
 type Custom = { id: string; section_id: string | null; extra_section_id: string | null; key: string; label: string; kind: string; sort_order: number; is_required: boolean; allow_na: boolean; multiline: boolean; help_text: string | null; default_table: unknown; table_rules: unknown };
@@ -69,8 +70,10 @@ export function buildEventStructure(opts: {
   extras?: Extra[];
   customFields?: Custom[];
   values?: Val[];
+  /** R11: the event's template variant. Areas outside it are left out unless they hold information. */
+  variant?: string | null;
 }): StructArea[] {
-  const { sections, fields, extras = [], customFields = [], values = [] } = opts;
+  const { sections, fields, extras = [], customFields = [], values = [], variant = null } = opts;
   const valueByKey = new Map<string, Val>();
   for (const v of values) valueByKey.set(refKey(v), v);
 
@@ -129,7 +132,9 @@ export function buildEventStructure(opts: {
       }
     }
     const archived = !h.is_active;
-    if (archived && !built.some((s) => s.fields.some((f) => hasAnyValue(valueByKey.get(f.refKey))))) continue;
+    const holdsInfo = () => built.some((s) => s.fields.some((f) => hasAnyValue(valueByKey.get(f.refKey))));
+    if (archived && !holdsInfo()) continue;
+    if (!areaInVariant(h.variants, variant) && evSubs.length === 0 && !holdsInfo()) continue;
     areas.push({
       id: h.id, key: h.key, title: h.title, description: h.description,
       navGroup: h.nav_group ?? null, archived,

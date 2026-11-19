@@ -17,8 +17,10 @@ import {
 import {
   ArrowLeft, CalendarDays, ChevronsUpDown, MapPin, MoreHorizontal, Search, Info, Link2, Settings2, Trash2, Users, X,
   Loader2, AlertTriangle, CheckCircle2, RotateCw, Eye, Check, Archive, ArchiveRestore, Lightbulb, UserCog,
+  LayoutList,
 } from "lucide-react";
 import { toast } from "sonner";
+import { VARIANTS, variantLabel, type Variant } from "@/lib/variants";
 import { useSaver, useSaverStatus } from "@/hooks/use-event-saver";
 import { SETTABLE_STAGES, STAGE_INFO, stagePrompt, type EventStage } from "@/lib/event-status";
 import { formatAuRange } from "@/lib/dates";
@@ -171,6 +173,14 @@ export function EventHeader({
     qc.invalidateQueries({ queryKey: ["my-event-access"] });
   }
 
+  async function setVariant(v: Variant) {
+    const { error } = await supabase.from("events").update({ template_variant: v }).eq("id", event.id);
+    if (error) return toast.error("Couldn't change the event type. Only people who manage this event can do this.");
+    toast.success(`Event type set to ${variantLabel(v)}. Areas that already have information stay.`);
+    qc.invalidateQueries({ queryKey: ["event", event.id] });
+    qc.invalidateQueries({ queryKey: ["events"] });
+  }
+
   async function deleteEvent() {
     setDeleting(true);
     try {
@@ -261,6 +271,16 @@ export function EventHeader({
                     <DropdownMenuSubContent>
                       <DropdownMenuRadioGroup value={event.stage} onValueChange={(v) => setStage(v as EventStage)}>
                         {SETTABLE_STAGES.map((s) => <DropdownMenuRadioItem key={s} value={s}>{STAGE_INFO[s].label}</DropdownMenuRadioItem>)}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                )}
+                {canManage && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger><LayoutList className="size-4" /> Event type</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuRadioGroup value={(event as any).template_variant ?? "major"} onValueChange={(v) => setVariant(v as Variant)}>
+                        {VARIANTS.map((v) => <DropdownMenuRadioItem key={v.key} value={v.key}>{v.label}</DropdownMenuRadioItem>)}
                       </DropdownMenuRadioGroup>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>

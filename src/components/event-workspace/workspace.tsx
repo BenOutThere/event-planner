@@ -74,8 +74,8 @@ function WorkspaceInner(props: WorkspaceProps) {
   useSaverRevision();
 
   const allAreas = useMemo(
-    () => buildEventStructure({ sections: props.sections, fields: props.fields, extras: props.extras, customFields: props.customFields, values: props.values }),
-    [props.sections, props.fields, props.extras, props.customFields, props.values],
+    () => buildEventStructure({ sections: props.sections, fields: props.fields, extras: props.extras, customFields: props.customFields, values: props.values, variant: (event as any)?.template_variant ?? null }),
+    [props.sections, props.fields, props.extras, props.customFields, props.values, event],
   );
   const getValue = useCallback((f: StructField) => saver.getValue(f.ref), [saver]);
 

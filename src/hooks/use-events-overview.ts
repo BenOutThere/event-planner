@@ -41,6 +41,7 @@ export function useEventsOverview() {
           extras: ((extras.data ?? []) as any[]).filter((x) => x.event_id === e.id),
           customFields: ((custom.data ?? []) as any[]).filter((x) => x.event_id === e.id),
           values: values as any,
+          variant: (e as any).template_variant ?? null,
         });
         const byKey = new Map(values.map((v) => [`${v.section_id ?? `x:${v.extra_section_id}`}::${v.field_key}`, v]));
         const coverage = coverageOf(areas.flatMap((a) => areaFields(a).map((def) => ({ def, value: byKey.get(def.refKey) as any }))));

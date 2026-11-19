@@ -1024,6 +1024,7 @@ export type Database = {
       }
       events: {
         Row: {
+          template_variant: string
           accreditation_notes: string | null
           archived_at: string | null
           archived_by: string | null
@@ -1063,6 +1064,7 @@ export type Database = {
           workspace_links: Json
         }
         Insert: {
+          template_variant?: string
           accreditation_notes?: string | null
           archived_at?: string | null
           archived_by?: string | null
@@ -1102,6 +1104,7 @@ export type Database = {
           workspace_links?: Json
         }
         Update: {
+          template_variant?: string
           accreditation_notes?: string | null
           archived_at?: string | null
           archived_by?: string | null
@@ -1491,6 +1494,7 @@ export type Database = {
       }
       template_sections: {
         Row: {
+          variants: string[]
           created_at: string
           description: string | null
           id: string
@@ -1505,6 +1509,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          variants?: string[]
           created_at?: string
           description?: string | null
           id?: string
@@ -1519,6 +1524,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          variants?: string[]
           created_at?: string
           description?: string | null
           id?: string

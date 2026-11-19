@@ -71,7 +71,8 @@ function HelpPage() {
             <p>The main app menu folds away inside an event to give the content more room — select the menu icon at the top left to open it.</p>
             <p>You sign in once at the OTG Control Centre and open Event Planner from its tile. Forgotten passwords are reset there too.</p>
             <p>The <strong>Events</strong> page shows events as <em>Cards</em>, a month <em>Calendar</em> or a 12-month <em>Timeline</em>. Filter by status, event lead or dates, or turn on <em>My events</em> for the events you lead, are assigned to, or are responsible for an area in. Your view and filters are remembered on that device. Each card shows days to go and, for people who can edit, how many reviews are overdue and how many items are to do.</p>
-            <p><strong>New event</strong> (Events page) needs the event's real name and its start date. A best guess for the date is fine; you can change it later. Event names typed in capitals are shown in title case, e.g. “SUMMERNATS NEW ZEALAND” shows as “Summernats New Zealand”.</p>
+            <p><strong>New event</strong> (Events page) needs the event's real name, its start date and its type: <em>Major event</em> (every area) or <em>Smaller event</em> (the areas chosen for smaller events). People who manage an event can change its type from the ⋯ menu. Areas that already hold information always stay.</p>
+            <p>The new event form needs the event's real name and its start date. A best guess for the date is fine; you can change it later. Event names typed in capitals are shown in title case, e.g. “SUMMERNATS NEW ZEALAND” shows as “Summernats New Zealand”.</p>
           </Section>
 
           <Section id="home" icon={Home} title="Event Home">
@@ -241,6 +242,7 @@ function HelpPage() {
           <Section id="template" icon={LayoutTemplate} title="Template builder (admins)">
             <ul>
               <li>The outline lists areas and sub-sections; select one to edit it. Set its name, help text, navigation group and <em>Who can see this area</em>.</li>
+              <li><strong>Included for</strong> sets which event types show an area: <em>Major event</em>, <em>Smaller event</em> or both. Areas ticked for both are the common core.</li>
               <li>Fields have a name, type, help text, <em>Required</em>, <em>Allow “Not applicable”</em> and, for tables, starting rows and completion rules.</li>
               <li><strong>Suggested starter fields</strong> appear for common areas (Operations, Marketing, Commercial, Scope, Audience, Event dates). They're optional; adding them creates empty fields only.</li>
               <li>Renaming or reordering keeps saved information attached. Removing something that holds information archives it instead.</li>
