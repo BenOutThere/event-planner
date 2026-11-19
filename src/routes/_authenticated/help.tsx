@@ -193,7 +193,8 @@ function HelpPage() {
               <li><strong>Manage columns</strong> renames, reorders, adds or removes columns, with a warning before information would be lost.</li>
               <li>If two people edit different rows or cells at the same time, both changes are kept. If they change the same cell, you're asked which version to keep.</li>
               <li>Columns headed <em>Email</em> or <em>Phone</em>/<em>Mobile</em> are checked: anything that isn't an email address or phone number is marked with a warning so it can be fixed. It's still saved.</li>
-              <li>In columns headed <em>Name</em>, <em>Person</em> or <em>Contact</em>, OTG people are suggested as you type (in the row window and on phones). Anyone else can still be typed.</li>
+              <li>In columns headed <em>Name</em>, <em>Person</em> or <em>Contact</em>, OTG people and directory contacts are suggested as you type (in the row window and on phones), and <em>Company</em> or <em>Supplier</em> columns suggest directory suppliers. Anyone else can still be typed.</li>
+              <li><strong>Contacts &amp; suppliers</strong> (main menu, OTG staff) is the shared directory. Pick someone from it and the row's empty company, phone and email cells fill in; you add their role for this event. Use <em>Fill from directory…</em> or <em>Save to directory</em> in a row's ⋯ menu. Admins, Leads and Members can add and change entries; external stakeholders never see the directory. Changing an entry doesn't change details already in events.</li>
             </ul>
           </Section>
 

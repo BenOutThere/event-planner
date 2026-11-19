@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, ListChecks, CalendarPlus, Settings, LogOut, LayoutTemplate, HelpCircle, ClipboardList } from "lucide-react";
+import { LayoutDashboard, ListChecks, BookUser, CalendarPlus, Settings, LogOut, LayoutTemplate, HelpCircle, ClipboardList } from "lucide-react";
 import { canReadOps } from "@/lib/operations";
 import {
   Sidebar,
@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 const mainItems = [
   { title: "Events", url: "/dashboard", icon: LayoutDashboard, needsCreate: false },
   { title: "My work", url: "/my-work", icon: ListChecks, needsCreate: false },
+  { title: "Contacts & suppliers", url: "/contacts", icon: BookUser, needsCreate: false, needsStaff: true },
   { title: "Operations plans", url: "/operations", icon: ClipboardList, needsCreate: false, needsStaff: true },
   { title: "User Guide", url: "/help", icon: HelpCircle, needsCreate: false },
 ];

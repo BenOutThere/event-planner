@@ -44,6 +44,7 @@ def n_values(p):  # field values containing "secretword" a person can find
 def n_docs(p): return sum(visible(p, a) for a in (O, S, M))
 
 COMPLETED = f"update eventplanner.events set stage='completed' where id='{A}';"
+DIRECTORY = "insert into eventplanner.directory_contacts (name, organisation) values ('Sam Security', 'Acme Security');"
 ARCHIVED = COMPLETED + f" update eventplanner.events set stage='archived' where id='{A}';"
 
 CHECKS = [
@@ -108,6 +109,10 @@ CHECKS = [
  ('Archive', 'All-events search skips archived A', "select count(*) from eventplanner.search_event_values('secretword')", lambda p: int(p in READ_B), ARCHIVED),
  ('Archive', 'Search inside archived A still works', f"select count(*) from eventplanner.search_event_values('secretword', '{A}')", lambda p: sum(visible(p, a) for a in (O, S, M)), ARCHIVED),
  ('Archive', 'All-events plan search skips archived A', "select count(*) from eventplanner.search_ops_documents('secretword', null, true)", lambda p: int(p in STAFF), ARCHIVED),
+ ('Directory', 'See the contacts directory', "select count(*) from eventplanner.directory_contacts", lambda p: int(p in STAFF), DIRECTORY),
+ ('Directory', 'Add a contact', "insert into eventplanner.directory_contacts (name, phone) values ('Jo Supplier', '0412 345 678') returning 1", CREATORS),
+ ('Directory', 'Change a contact', "update eventplanner.directory_contacts set phone='0400 000 000' returning 1", CREATORS, DIRECTORY),
+ ('Directory', 'Delete a contact', "delete from eventplanner.directory_contacts returning 1", {'Admin'}, DIRECTORY),
 ]
 
 def run(person, sql, setup=''):

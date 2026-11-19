@@ -22,6 +22,7 @@ import {
 } from "./context";
 import { EventHeader } from "./event-header";
 import { PeopleProvider } from "@/components/fields/people-context";
+import { DirectoryProvider, useDirectoryQuery } from "@/components/fields/directory-context";
 import { EventNav, currentSectionLabel } from "./event-nav";
 import { EventHome } from "./event-home";
 import { AreaPanel } from "./area-panel";
@@ -206,6 +207,7 @@ function WorkspaceInner(props: WorkspaceProps) {
     openAreaSettings: (a) => setSettingsArea(a),
   };
 
+  const directory = useDirectoryQuery(!preview);
   const peopleNames = useMemo(() => [...new Set([...profiles.values()])].sort((a, b) => a.localeCompare(b)), [profiles]);
   const nav = <EventNav />;
   const sectionLabel = currentSectionLabel(view, active, search);
@@ -213,6 +215,7 @@ function WorkspaceInner(props: WorkspaceProps) {
   return (
     <WorkspaceProvider value={ctx}>
       <PeopleProvider value={peopleNames}>
+      <DirectoryProvider value={directory.value}>
       <div className="min-h-full">
         <EventHeader
           backTo={props.backTo}
@@ -300,6 +303,7 @@ function WorkspaceInner(props: WorkspaceProps) {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      </DirectoryProvider>
       </PeopleProvider>
     </WorkspaceProvider>
   );

@@ -102,6 +102,57 @@ export type Database = {
           },
         ]
       }
+      directory_contacts: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          kind: string
+          name: string
+          notes: string | null
+          organisation: string | null
+          phone: string | null
+          role_title: string | null
+          updated_at: string
+          updated_by: string | null
+          website: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          kind?: string
+          name: string
+          notes?: string | null
+          organisation?: string | null
+          phone?: string | null
+          role_title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          website?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string | null
+          organisation?: string | null
+          phone?: string | null
+          role_title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       event_area_meta: {
         Row: {
           area_id: string
