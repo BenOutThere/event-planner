@@ -64,7 +64,7 @@ function HelpPage() {
           <Section id="start" icon={Rocket} title="Getting started">
             <ol className="list-decimal pl-5 space-y-1">
               <li>Open <strong>Events</strong> and select an event. You land on its <strong>Event Home</strong>.</li>
-              <li>Use the list on the left to open any section (on a phone, tap the section button next to search).</li>
+              <li>Use the list on the left to open any section (on a phone, tap the section button next to search). For people who can edit, the dot beside each area shows how complete it is: an empty ring (nothing yet), half filled (some fields), full green (every field) or red (required information missing). Select a group heading to fold it away; the menu remembers. Event Home offers <em>Pick up where you left off</em> to reopen the last area you were in.</li>
               <li>Press <kbd className="rounded border px-1 text-xs">/</kbd> (or Ctrl/⌘ + K) to jump to <strong>Search</strong> at the top.</li>
               <li>If you can edit, select <strong>Edit section</strong> to change information. Changes save automatically.</li>
             </ol>

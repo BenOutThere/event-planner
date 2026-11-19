@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { loadLastArea } from "@/lib/nav-prefs";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,9 @@ export function EventHome() {
   const areaById = new Map(areas.map((a) => [a.id, a]));
   const changes = w.changes.filter((c) => !c.area_id || areaById.has(c.area_id)).slice(0, 8);
   const attention = canEdit ? attentionItems(w).length : 0;
+  const [lastAreaId, setLastAreaId] = useState<string | null>(null);
+  useEffect(() => { setLastAreaId(loadLastArea(event.id)); }, [event.id]);
+  const lastArea = lastAreaId ? areaById.get(lastAreaId) ?? null : null;
 
   const edit = (l: typeof descLoc) => l && canEdit ? (
     <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openArea(l.area.id, { field: l.field.refKey, edit: true })}><Plus className="size-3.5" /> Add</Button>
@@ -86,6 +90,13 @@ export function EventHome() {
 
   return (
     <div className="space-y-4">
+      {lastArea && (
+        <button type="button" onClick={() => openArea(lastArea.id)}
+          className="w-full sm:w-auto flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm hover:bg-muted text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <HistoryIcon className="size-4 text-muted-foreground shrink-0" aria-hidden />
+          <span>Pick up where you left off: <strong>{lastArea.title}</strong></span>
+        </button>
+      )}
       <section className="rounded-xl border bg-card overflow-hidden" aria-labelledby="home-title">
         <div className="h-1.5 bg-gradient-to-r from-primary via-primary to-accent" aria-hidden />
         <div className="p-4 sm:p-5 grid gap-5 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
