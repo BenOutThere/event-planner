@@ -50,7 +50,9 @@ CHECKS = [
  # (group, label, sql, expected: set of people allowed, or function person -> expected count)
  ('Events', 'See Event A', f"select count(*) from eventplanner.events where id='{A}'", READ_A),
  ('Events', 'See Event B', f"select count(*) from eventplanner.events where id='{B}'", READ_B),
- ('Events', 'Create an event', "insert into eventplanner.events (name, created_by) values ('New', auth.uid()) returning 1", CREATORS),
+ ('Events', 'Create an event', "insert into eventplanner.events (name, created_by, proposed_date) values ('New', auth.uid(), '2027-05-01') returning 1", CREATORS),
+ ('Events', 'Create an event with no start date', "insert into eventplanner.events (name, created_by) values ('New', auth.uid()) returning 1", NOBODY),
+ ('Events', 'Create an "Untitled event"', "insert into eventplanner.events (name, created_by, proposed_date) values ('Untitled event', auth.uid(), '2027-05-01') returning 1", NOBODY),
  ('Events', 'Change Event A details', f"update eventplanner.events set name='x' where id='{A}' returning 1", MANAGE_A),
  ('Events', 'Change Event A\'s lead', f"update eventplanner.events set lead_user_id='{uid('Member')}' where id='{A}' returning 1", {'Admin'}),
  ('Events', 'Delete Event A', f"delete from eventplanner.events where id='{A}' returning 1", {'Admin'}),

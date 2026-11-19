@@ -1,3 +1,4 @@
+import { displayEventName } from "@/lib/event-name";
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,7 +85,7 @@ export function useOpsHits(q: string, enabled: boolean, opts: { eventId?: string
     const terms = words;
     const out: OpsHit[] = [];
     for (const r of rpc.data ?? []) {
-      const base = { docId: r.id, title: r.title, fileName: r.file_name, docCategoryId: r.category_id, docCategoryName: r.category_name, eventId: r.event_id, eventName: r.event_name };
+      const base = { docId: r.id, title: r.title, fileName: r.file_name, docCategoryId: r.category_id, docCategoryName: r.category_name, eventId: r.event_id, eventName: r.event_name ? displayEventName(r.event_name) : null };
       const i = sectioned.findIndex((s) => s.id === r.id);
       const f = i >= 0 ? full[i]?.data : undefined;
       const groups = f ? sectionHits(f.content, f.sections, f.pages, terms) : [];

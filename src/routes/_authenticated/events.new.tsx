@@ -40,13 +40,14 @@ function NewEvent() {
   const inFlight = useRef(false);
 
   const canCreate = isAdmin || roles.includes("lead") || roles.includes("member");
-  const nameError = touched && !name.trim() ? "Enter the event name" : null;
+  const nameError = touched && !name.trim() ? "Enter the event name" : touched && /^untitled( event)?$/i.test(name.trim()) ? "Give the event its real name" : null;
+  const startError = touched && !start ? "Enter the start date (a best guess is fine; you can change it later)" : null;
   const dateWarnings = checkDateSequence({ event_start_date: start, event_end_date: end });
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
     setTouched(true);
-    if (!name.trim() || !user || inFlight.current) return;
+    if (!name.trim() || /^untitled( event)?$/i.test(name.trim()) || !start || !user || inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
     const id = eventId.current;
@@ -121,8 +122,9 @@ function NewEvent() {
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="ev-start">Event start date <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Label htmlFor="ev-start">Event start date <span className="text-destructive" aria-hidden>*</span></Label>
             <DateField id="ev-start" ariaLabel="Event start date" value={start} onChange={setStart} />
+            {startError && <p className="text-xs text-destructive">{startError}</p>}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="ev-end">Event end date <span className="text-muted-foreground font-normal">(optional)</span></Label>

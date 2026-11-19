@@ -22,6 +22,7 @@ import { daysToGoLabel, RAG_INFO, readiness, todoItems } from "@/lib/readiness";
 import type { AreaMeta } from "@/lib/currency";
 import { toDateOnly } from "@/lib/dates";
 import { cn } from "@/lib/utils";
+import { displayEventName } from "@/lib/event-name";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -81,7 +82,7 @@ function Dashboard() {
         };
         const ready = readiness({ ...input, start: e.proposed_date, end: e.end_date, stage: e.stage });
         const todo = todoItems(input).length;
-        return { ...e, coverage, ready, todo };
+        return { ...e, name: displayEventName(e.name), coverage, ready, todo };
       });
     },
   });

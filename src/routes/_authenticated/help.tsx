@@ -69,6 +69,8 @@ function HelpPage() {
               <li>If you can edit, select <strong>Edit section</strong> to change information. Changes save automatically.</li>
             </ol>
             <p>The main app menu folds away inside an event to give the content more room — select the menu icon at the top left to open it.</p>
+            <p>You sign in once at the OTG Control Centre and open Event Planner from its tile. Forgotten passwords are reset there too.</p>
+            <p><strong>New event</strong> (Events page) needs the event's real name and its start date. A best guess for the date is fine; you can change it later. Event names typed in capitals are shown in title case, e.g. “SUMMERNATS NEW ZEALAND” shows as “Summernats New Zealand”.</p>
           </Section>
 
           <Section id="home" icon={Home} title="Event Home">

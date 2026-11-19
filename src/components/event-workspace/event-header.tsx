@@ -28,6 +28,7 @@ import { AccessDialog } from "./access-dialog";
 import { PersonPicker, type PersonValue } from "@/components/fields/person-picker";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { displayEventName } from "@/lib/event-name";
 
 export function SaveIndicator() {
   const status = useSaverStatus();
@@ -76,7 +77,7 @@ function EventSwitcher() {
                 <CommandItem key={e.id} value={`${e.name} ${e.id}`} onSelect={() => { setOpen(false); navigate({ to: "/events/$id", params: { id: e.id }, search: {} as any }); }}>
                   <Check className={cn("size-4", e.id === event.id ? "opacity-100" : "opacity-0")} aria-hidden />
                   <div className="min-w-0">
-                    <div className="truncate">{e.name}</div>
+                    <div className="truncate">{displayEventName(e.name)}</div>
                     <div className="text-xs text-muted-foreground">{formatAuRange(e.proposed_date, e.end_date)}</div>
                   </div>
                 </CommandItem>
