@@ -68,7 +68,7 @@ function HelpPage() {
               <li>Press <kbd className="rounded border px-1 text-xs">/</kbd> (or Ctrl/⌘ + K) to jump to <strong>Search</strong> at the top.</li>
               <li>If you can edit, click any field (or its pencil) to change it. Changes save as you type; press <kbd className="rounded border px-1 text-xs">Esc</kbd> or <strong>Done</strong> when you're finished.</li>
             </ol>
-            <p>The main app menu folds away inside an event to give the content more room — select the menu icon at the top left to open it.</p>
+            <p>Select the menu icon at the top left to fold the main app menu away for more room, or to bring it back. It stays the way you leave it, including inside events.</p>
             <p>You sign in once at the OTG Control Centre and open Event Planner from its tile. Forgotten passwords are reset there too.</p>
             <p>The <strong>Events</strong> page shows events as <em>Cards</em>, a month <em>Calendar</em> or a 12-month <em>Timeline</em>. Filter by status, event lead or dates, or turn on <em>My events</em> for the events you lead, are assigned to, or are responsible for an area in. Your view and filters are remembered on that device. Each card shows days to go and, for people who can edit, how many reviews are overdue and how many items are to do.</p>
             <p><strong>New event</strong> (Events page) needs the event's real name, its start date and its type: <em>Major event</em> (every area) or <em>Smaller event</em> (the areas chosen for smaller events). People who manage an event can change its type from the ⋯ menu. Areas that already hold information always stay.</p>

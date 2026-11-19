@@ -9,7 +9,6 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Eye, Menu, X } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar";
 import { EventSaverProvider, useSaver, useSaverRevision, type ServerRow } from "@/hooks/use-event-saver";
 import { useAreaPermissions } from "@/hooks/use-event-access";
 import { useAuth } from "@/hooks/use-auth";
@@ -107,15 +106,7 @@ function WorkspaceInner(props: WorkspaceProps) {
   const canRestore = props.canManageEvent && !asStakeholder && archived;
   const isAdmin = props.isAdmin && !asStakeholder;
 
-  // Give event content the width: tuck the main app menu away on larger screens.
-  const sidebar = useSidebar();
-  useEffect(() => {
-    if (sidebar.isMobile) return;
-    const was = sidebar.open;
-    sidebar.setOpen(false);
-    return () => { if (was) sidebar.setOpen(true); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // The main app menu stays however the person left it (R16).
 
   const view = search.view ?? (search.area ? "area" : "home");
   const active = view === "area" ? areas.find((a) => a.id === search.area || a.key === search.area) ?? null : null;
