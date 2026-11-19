@@ -22,7 +22,7 @@ describe("todo items", () => {
     ];
     const items = todoItems(base(areas, { name: { value_text: "Summernats" }, email: { value_text: "azhar" } }));
     const c = todoCounts(items);
-    expect(c).toEqual({ required: 0, review: 0, unconfigured: 4, contact: 1, total: 5 });
+    expect(c).toEqual({ required: 0, review: 0, unconfigured: 4, contact: 1, dates: 0, total: 5 });
     expect(todoBreakdown(c)).toEqual(["4 areas not set up", "1 contact detail to check"]);
   });
   it("checks email and phone cells in tables", () => {
@@ -56,5 +56,17 @@ describe("readiness", () => {
   it("has sensible thresholds", () => {
     expect(thresholds(3)).toEqual([90, 70]);
     expect(thresholds(400)).toEqual([25, 10]);
+  });
+});
+
+describe("description dates", () => {
+  it("adds a To do item when the description disagrees with the dates", () => {
+    const areas = [area("overview", [field("event_start_date", "date"), field("event_end_date", "date"), field("marketing_event_description", "text")])];
+    const values = { event_start_date: { value_text: "2027-02-24" }, event_end_date: { value_text: "2027-02-28" }, marketing_event_description: { value_text: "Summernats, February 26–28" } };
+    const items = todoItems(base(areas, values));
+    expect(items.map((i) => i.kind)).toEqual(["dates"]);
+    const fixed = todoItems(base([area("overview", [...areas[0].sections[0].fields, field("public_start_date", "date"), field("public_end_date", "date")])],
+      { ...values, public_start_date: { value_text: "2027-02-26" }, public_end_date: { value_text: "2027-02-28" } }));
+    expect(fixed).toEqual([]);
   });
 });

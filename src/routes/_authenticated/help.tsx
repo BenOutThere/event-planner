@@ -75,7 +75,7 @@ function HelpPage() {
             <p>A summary built from the event's own saved information — there's nothing extra to maintain:</p>
             <ul>
               <li>Name, short description, venue and address with <em>Open map</em>, event lead and status.</li>
-              <li><strong>Dates</strong>: event dates (from Event Overview) and operational dates (bump-in and bump-out), labelled separately.</li>
+              <li><strong>Dates</strong>, side by side: <em>Open to the public</em> (Public start and end date, or the event dates when they're the same) and <em>Event (operational)</em>: event dates, bump-in and bump-out. If the event description mentions days that don't match, a warning appears with buttons to set public dates or edit the description.</li>
               <li><strong>Pinned</strong>: up to 6 important sections, fields or documents chosen by editors.</li>
               <li>Quick access to the <strong>Event program</strong>, <strong>Master schedule</strong>, <strong>Site information</strong> and <strong>Documents &amp; links</strong>. Missing items say so plainly, e.g. “Master schedule not added”, with an <em>Add</em> button for editors.</li>
               <li><strong>Key contacts</strong> from the contact and team tables, with tap-to-call and email.</li>
@@ -260,7 +260,7 @@ function HelpPage() {
             <dl className="space-y-4">
               <Faq q="Why can't I see a section other people mention?">It may be restricted to staff or event managers. Ask an admin.</Faq>
               <Faq q="Why can't I edit an event?">You have view access. Ask an admin or the event lead for edit access.</Faq>
-              <Faq q="The event dates and the marketing description show different days.">They can mean different things (e.g. bump-in vs public days). Both are kept; nothing is changed automatically. Admins can add a “Public event dates” field.</Faq>
+              <Faq q="The event dates and the marketing description show different days.">They can mean different things (e.g. the event runs 24–28 Feb but is open to the public 26–28 Feb). Fill in <em>Public start date</em> and <em>Public end date</em> in Event Overview: Event Home then shows both, and the warning goes once the description matches the public dates. Nothing is changed automatically.</Faq>
               <Faq q="What does “Operating entity” mean?">The OTG company that runs the event, for example Out There Productions Major Events (formerly shown as “OTPME”). Admins manage the list of choices in the Template builder.</Faq>
               <Faq q="Where do uploaded files go?">They're stored with the event and follow the event's and the area's access rules.</Faq>
             </dl>

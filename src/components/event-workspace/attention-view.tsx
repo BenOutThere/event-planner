@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, CheckCircle2, Clock, Info, ListTodo, Mail, Settings2, Wrench } from "lucide-react";
+import { AlertTriangle, CalendarDays, CheckCircle2, Clock, Info, ListTodo, Mail, Settings2, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { areaFields } from "@/lib/event-structure";
@@ -89,6 +89,7 @@ export function AttentionView() {
   const reviews = items.filter((i) => i.kind === "review") as Extract<AttentionItem, { kind: "review" }>[];
   const unconfigured = items.filter((i) => i.kind === "unconfigured");
   const contacts = items.filter((i) => i.kind === "contact") as Extract<AttentionItem, { kind: "contact" }>[];
+  const dates = items.filter((i) => i.kind === "dates") as Extract<AttentionItem, { kind: "dates" }>[];
 
   return (
     <section aria-labelledby="attention-title" className="space-y-4">
@@ -112,6 +113,15 @@ export function AttentionView() {
             action={<Button size="sm" variant="outline" onClick={() => w.openArea(i.area.id)}>Open to review</Button>} />
         ))}
       </Group>
+
+      {dates.length > 0 && (
+        <Group title="Dates to check" icon={CalendarDays} count={dates.length} empty="">
+          {dates.map((i, n) => (
+            <Row key={`dates-${n}`} title={i.field.label} sub={i.detail}
+              action={<Button size="sm" variant="outline" onClick={() => w.go({ view: undefined, area: undefined, field: undefined })}>See dates</Button>} />
+          ))}
+        </Group>
+      )}
 
       <Group title="Contact details to check" icon={Mail} count={contacts.length} empty="Every email address and phone number looks right.">
         {contacts.map((i, n) => (

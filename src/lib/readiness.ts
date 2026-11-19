@@ -17,12 +17,15 @@ import { asTable, fieldState } from "@/lib/coverage";
 import { reviewState, type AreaMeta } from "@/lib/currency";
 import { cellProblem, emailProblem, phoneProblem } from "@/lib/contact-checks";
 import type { EventStage } from "@/lib/event-status";
+import { dateCheck } from "@/lib/event-home";
+import { formatAuRange } from "@/lib/dates";
 
 export type TodoItem =
   | { kind: "required"; area: StructArea; field: StructField; detail?: string }
   | { kind: "review"; area: StructArea; detail: string }
   | { kind: "unconfigured"; area: StructArea }
-  | { kind: "contact"; area: StructArea; field: StructField; detail: string; row?: number };
+  | { kind: "contact"; area: StructArea; field: StructField; detail: string; row?: number }
+  | { kind: "dates"; area: StructArea; field: StructField; detail: string };
 
 export type TodoInput = {
   areas: StructArea[];
@@ -56,13 +59,18 @@ export function todoItems(w: TodoInput): TodoItem[] {
     const r = reviewState(w.meta.get(area.id), w.areaUpdatedAt(area), w.today);
     if (r.needsReview) out.push({ kind: "review", area, detail: r.label });
   }
+  const dc = dateCheck(w.areas, w.getValue);
+  if (dc.descLoc) for (const m of dc.conflicts) {
+    out.push({ kind: "dates", area: dc.descLoc.area, field: dc.descLoc.field,
+      detail: `Says “${m.text}”, but the ${dc.reference === "public" ? "public" : "event"} dates are ${formatAuRange(dc.reference === "public" ? dc.publicStart : dc.start, dc.reference === "public" ? (dc.publicEnd ?? dc.publicStart) : dc.end)}` });
+  }
   return out;
 }
 
-export type TodoCounts = { required: number; review: number; unconfigured: number; contact: number; total: number };
+export type TodoCounts = { required: number; review: number; unconfigured: number; contact: number; dates: number; total: number };
 
 export function todoCounts(items: TodoItem[]): TodoCounts {
-  const c = { required: 0, review: 0, unconfigured: 0, contact: 0, total: items.length };
+  const c = { required: 0, review: 0, unconfigured: 0, contact: 0, dates: 0, total: items.length };
   for (const i of items) c[i.kind] += 1;
   return c;
 }
@@ -74,6 +82,7 @@ export function todoBreakdown(c: TodoCounts): string[] {
   if (c.required) parts.push(n(c.required, "required field missing", "required fields missing"));
   if (c.unconfigured) parts.push(n(c.unconfigured, "area not set up", "areas not set up"));
   if (c.review) parts.push(n(c.review, "review due", "reviews due"));
+  if (c.dates) parts.push(n(c.dates, "date in the description to check", "dates in the description to check"));
   if (c.contact) parts.push(n(c.contact, "contact detail to check", "contact details to check"));
   return parts;
 }
