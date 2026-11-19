@@ -147,7 +147,7 @@ function HelpPage() {
             <ul>
               <li>All staff can read, search and ask company-wide plans. An event's plan can be read by anyone with access to that event.</li>
               <li><strong>Admins and Leads</strong> upload plans (PDF or Word, up to 50 MB, several at once). On a plan's page, the ⋯ menu lets them edit details, replace the file with a new version, re-read its text and sections, link it to an event (or make it company-wide again) and delete it.</li>
-              <li>Admins manage the list of categories on the <strong>Admin</strong> page.</li>
+              <li>Plans are filtered by eight main categories: Safety, Medical, Traffic, Site, Competition, Security, Comms and SOP. More detailed categories (often the sections of a large plan, like “17 Medical operations”) are grouped under one of them and still found by search. Admins manage this on the <strong>Admin</strong> page under <em>Manage categories</em>, where a main category is suggested for anything not grouped yet.</li>
               <li>The text inside PDF and Word (.docx) files is searchable. Older .doc files and scanned PDFs are found by title, description and category only — save as .docx (or a text PDF) and replace the file.</li>
               <li>External stakeholders can't see the company-wide plans. They can see an event's plan only if they've been given access to that event.</li>
             </ul>

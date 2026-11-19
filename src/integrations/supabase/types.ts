@@ -1213,18 +1213,24 @@ export type Database = {
       }
       ops_categories: {
         Row: {
+          is_main: boolean
+          main_category_id: string | null
           created_at: string
           id: string
           name: string
           sort_order: number
         }
         Insert: {
+          is_main?: boolean
+          main_category_id?: string | null
           created_at?: string
           id?: string
           name: string
           sort_order?: number
         }
         Update: {
+          is_main?: boolean
+          main_category_id?: string | null
           created_at?: string
           id?: string
           name?: string
