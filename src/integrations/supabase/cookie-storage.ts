@@ -12,7 +12,12 @@
  */
 
 const PARENT_DOMAIN = ".outthereadmin.com.au";
-const MAX_CHUNK = 3000; // safe under most browsers' 4096-byte per-cookie limit
+// Browsers drop (silently) any cookie whose name + value is over 4096 bytes.
+// Chunks are measured AFTER URL-encoding, because encoding grows the JSON
+// session a lot (every quote becomes %22). Measuring before encoding let a
+// bigger session (e.g. one with a Microsoft identity linked) write chunks
+// that were too big, so they were thrown away and the person looked signed out.
+const MAX_CHUNK = 3000;
 
 function isBrowser(): boolean {
   return typeof document !== "undefined";
@@ -26,11 +31,7 @@ function isProductionHost(): boolean {
 function cookieAttributes(maxAgeSeconds: number): string {
   // On production subdomains: scope to parent domain + Secure.
   // On localhost/preview: stay host-only and skip Secure so dev still works.
-  const parts = [
-    `Path=/`,
-    `Max-Age=${maxAgeSeconds}`,
-    `SameSite=Lax`,
-  ];
+  const parts = [`Path=/`, `Max-Age=${maxAgeSeconds}`, `SameSite=Lax`];
   if (isProductionHost()) {
     parts.push(`Domain=${PARENT_DOMAIN}`);
     parts.push(`Secure`);
@@ -38,25 +39,45 @@ function cookieAttributes(maxAgeSeconds: number): string {
   return parts.join("; ");
 }
 
-function readCookie(name: string): string | null {
+/** The cookie's value exactly as stored (still URL-encoded). */
+function readRawCookie(name: string): string | null {
   if (!isBrowser()) return null;
   const prefix = `${encodeURIComponent(name)}=`;
   const parts = document.cookie ? document.cookie.split("; ") : [];
   for (const p of parts) {
-    if (p.startsWith(prefix)) {
-      try {
-        return decodeURIComponent(p.slice(prefix.length));
-      } catch {
-        return p.slice(prefix.length);
-      }
-    }
+    if (p.startsWith(prefix)) return p.slice(prefix.length);
   }
   return null;
 }
 
-function writeCookie(name: string, value: string, maxAgeSeconds: number) {
+function decode(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+/** Writes an already URL-encoded value. */
+function writeRawCookie(name: string, encodedValue: string, maxAgeSeconds: number) {
   if (!isBrowser()) return;
-  document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; ${cookieAttributes(maxAgeSeconds)}`;
+  document.cookie = `${encodeURIComponent(name)}=${encodedValue}; ${cookieAttributes(maxAgeSeconds)}`;
+}
+
+/** Splits an encoded string into pieces of at most `size`, never cutting a %XX escape in half. */
+function splitEncoded(encoded: string, size: number): string[] {
+  const out: string[] = [];
+  let pos = 0;
+  while (pos < encoded.length) {
+    let end = Math.min(pos + size, encoded.length);
+    if (end < encoded.length) {
+      if (encoded[end - 1] === "%") end -= 1;
+      else if (encoded[end - 2] === "%") end -= 2;
+    }
+    out.push(encoded.slice(pos, end));
+    pos = end;
+  }
+  return out;
 }
 
 function deleteCookie(name: string) {
@@ -75,24 +96,25 @@ function chunkKey(key: string, i: number): string {
 
 function readAll(key: string): string | null {
   // Try unchunked first.
-  const direct = readCookie(key);
-  if (direct !== null) return direct;
-  // Then chunked.
+  const direct = readRawCookie(key);
+  if (direct !== null) return decode(direct);
+  // Then chunked. Join the encoded pieces and decode once. (Older cookies,
+  // encoded piece by piece, read back exactly the same way.)
   let out = "";
   let i = 0;
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
-    const part = readCookie(chunkKey(key, i));
+    const part = readRawCookie(chunkKey(key, i));
     if (part === null) break;
     out += part;
     i += 1;
   }
-  return out.length > 0 ? out : null;
+  return out.length > 0 ? decode(out) : null;
 }
 
 function clearAll(key: string) {
   deleteCookie(key);
-  // Best-effort: clear up to 16 chunks. Sessions never get close to this.
+  // Best-effort: clear up to 16 chunks (about 48 KB). Sessions never get close.
   for (let i = 0; i < 16; i++) deleteCookie(chunkKey(key, i));
 }
 
@@ -112,14 +134,14 @@ export const cookieStorage = {
     }
     // Always clear previous chunks before writing — value length may have changed.
     clearAll(key);
-    if (value.length <= MAX_CHUNK) {
-      writeCookie(key, value, SESSION_MAX_AGE);
+    const encoded = encodeURIComponent(value);
+    if (encoded.length <= MAX_CHUNK) {
+      writeRawCookie(key, encoded, SESSION_MAX_AGE);
       return;
     }
-    let i = 0;
-    for (let pos = 0; pos < value.length; pos += MAX_CHUNK, i++) {
-      writeCookie(chunkKey(key, i), value.slice(pos, pos + MAX_CHUNK), SESSION_MAX_AGE);
-    }
+    splitEncoded(encoded, MAX_CHUNK).forEach((piece, i) =>
+      writeRawCookie(chunkKey(key, i), piece, SESSION_MAX_AGE),
+    );
   },
   removeItem(key: string): void {
     if (isBrowser() && !isProductionHost()) {
