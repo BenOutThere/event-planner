@@ -1,7 +1,10 @@
-import { Home, FolderOpen, ListTodo, Lock, Clock, ClipboardList } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Home, FolderOpen, ListTodo, Lock, Clock, ClipboardList, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { areaFields, type StructArea } from "@/lib/event-structure";
-import { fieldState } from "@/lib/coverage";
+import { coverageOf } from "@/lib/coverage";
+import { areaProgress, type AreaProgress } from "@/lib/area-progress";
+import { loadCollapsed, saveCollapsed, saveLastArea } from "@/lib/nav-prefs";
 import { reviewState, RESTRICTION_INFO } from "@/lib/currency";
 import { collectDocuments } from "@/lib/documents";
 import { useWorkspace, type WorkspaceSearch, type WorkspaceView } from "./context";
@@ -56,12 +59,22 @@ export function EventNav() {
 
   const items = areas.map((area) => {
     const fields = areaFields(area);
-    const missingRequired = canEdit ? fields.filter((f) => { const s = fieldState(f, getValue(f)); return s.required && !s.requirementMet; }).length : 0;
+    const progress = canEdit ? areaProgress(coverageOf(fields.map((def) => ({ def, value: getValue(def) })))) : null;
     const restricted = areaPerms?.get(area.id)?.restricted_to ?? null;
     const review = canEdit ? reviewState(meta.get(area.id), w.areaUpdated(area).at, today) : null;
-    return { area, configured: fields.length > 0, missingRequired, restricted, needsReview: !!review?.needsReview };
+    return { area, configured: fields.length > 0, progress, restricted, needsReview: !!review?.needsReview };
   });
   const activeId = view === "area" ? areas.find((a) => a.id === search.area || a.key === search.area)?.id : null;
+
+  // Remember the last area opened in this event, and which menu groups are folded away.
+  useEffect(() => { if (activeId) saveLastArea(w.event.id, activeId); }, [activeId, w.event.id]);
+  const [collapsed, setCollapsed] = useState<string[]>([]);
+  useEffect(() => { setCollapsed(loadCollapsed()); }, []);
+  const toggleGroup = (name: string) => setCollapsed((cur) => {
+    const next = cur.includes(name) ? cur.filter((g) => g !== name) : [...cur, name];
+    saveCollapsed(next);
+    return next;
+  });
 
   return (
     <nav aria-label="Event sections" className="space-y-4">
@@ -87,34 +100,57 @@ export function EventNav() {
         )}
       </ul>
 
-      {groupAreas(items).map((g, gi) => (
+      {groupAreas(items).map((g, gi) => {
+        const label = g.name ?? "Event";
+        const hasActive = g.items.some((i) => i.area.id === activeId);
+        const folded = collapsed.includes(label) && !hasActive;
+        const flagged = g.items.filter((i) => i.progress?.state === "missing" || i.needsReview).length;
+        const listId = `nav-group-${gi}`;
+        return (
         <div key={`${g.name}-${gi}`}>
-          <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{g.name ?? "Event"}</div>
-          <ul className="space-y-0.5">
-            {g.items.map(({ area, configured, missingRequired, restricted, needsReview }) => {
+          <button type="button" onClick={() => toggleGroup(label)} aria-expanded={!folded} aria-controls={listId}
+            className="w-full flex items-center gap-1 px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span className="flex-1 text-left">{label}</span>
+            {folded && flagged > 0 && <span className="normal-case tracking-normal font-normal">{flagged} to check</span>}
+            <ChevronDown className={cn("size-3.5 transition-transform", folded && "-rotate-90")} aria-hidden />
+          </button>
+          <ul id={listId} className={cn("space-y-0.5", folded && "hidden")}>
+            {g.items.map(({ area, configured, progress, restricted, needsReview }) => {
               const active = area.id === activeId;
               return (
                 <li key={area.id}>
                   <NavButton active={active} onClick={() => openArea(area.id)}>
+                    {progress && <ProgressDot p={progress} active={active} />}
                     <span className="flex-1 min-w-0 leading-snug">{area.title}</span>
                     {restricted && (
                       <span title={RESTRICTION_INFO[restricted]?.label}><Lock className={cn("size-3.5", active ? "text-primary-foreground/80" : "text-muted-foreground")} aria-label={RESTRICTION_INFO[restricted]?.label} /></span>
                     )}
                     {canEdit && !configured && <span className={cn("text-[10px]", active ? "text-primary-foreground/80" : "text-muted-foreground")}>Not set up</span>}
                     {needsReview && <span title="Needs review"><Clock className={cn("size-3.5", active ? "text-primary-foreground/80" : "text-warning-foreground")} aria-label="Needs review" /></span>}
-                    {missingRequired > 0 && (
-                      <span className={cn("size-2 rounded-full shrink-0", active ? "bg-primary-foreground" : "bg-destructive")} title={`${missingRequired} required item${missingRequired === 1 ? "" : "s"} missing`}>
-                        <span className="sr-only">{missingRequired} required missing</span>
-                      </span>
-                    )}
                   </NavButton>
                 </li>
               );
             })}
           </ul>
         </div>
-      ))}
+        );
+      })}
       {areas.length === 0 && <p className="px-2 text-sm text-muted-foreground">No event areas are set up yet.</p>}
     </nav>
+  );
+}
+
+/** Completion at a glance: empty ring, half-filled, full, or red when required information is missing. */
+function ProgressDot({ p, active }: { p: AreaProgress; active: boolean }) {
+  if (p.state === "none") return <span className="size-2.5 shrink-0" aria-hidden />;
+  const color = p.state === "missing" ? "border-destructive" : p.state === "complete" ? "border-success" : "border-muted-foreground/60";
+  const fill = p.state === "missing" ? "bg-destructive" : p.state === "complete" ? "bg-success" : "bg-muted-foreground/60";
+  return (
+    <span title={p.label} className={cn("relative size-2.5 shrink-0 rounded-full border overflow-hidden", active ? "border-primary-foreground" : color)}>
+      {p.state !== "empty" && (
+        <span className={cn("absolute inset-y-0 left-0", p.state === "partial" ? "w-1/2" : "w-full", active ? "bg-primary-foreground" : fill)} aria-hidden />
+      )}
+      <span className="sr-only">{p.label}</span>
+    </span>
   );
 }

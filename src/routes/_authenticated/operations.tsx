@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { resolveCategory, visibleCategories, type OpsCategory } from "@/lib/ops-categories";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -93,9 +94,9 @@ function OperationsPage() {
     queryKey: ["ops-categories"],
     enabled: canRead,
     queryFn: async () => {
-      const { data, error } = await supabase.from("ops_categories").select("id, name, sort_order").order("sort_order").order("name");
+      const { data, error } = await supabase.from("ops_categories").select("id, name, sort_order, is_main, main_category_id").order("sort_order").order("name");
       if (error) throw error;
-      return data as Category[];
+      return data as OpsCategory[];
     },
   });
   const docs = useQuery({
@@ -110,40 +111,47 @@ function OperationsPage() {
   });
   const results = useOpsHits(dq, canRead);
 
-  const catName = useMemo(() => new Map((cats.data ?? []).map((c) => [c.id, c.name])), [cats.data]);
+  // R19: plans and sections are filed under their main category once grouped.
+  const catById = useMemo(() => new Map((cats.data ?? []).map((c) => [c.id, c])), [cats.data]);
+  const shownCats = useMemo(() => visibleCategories(cats.data ?? []), [cats.data]);
+  const resolve = (id: string | null | undefined) => resolveCategory(id, catById);
+  const catName = useMemo(() => new Map(shownCats.map((c) => [c.id, c.name])), [shownCats]);
   const byId = useMemo(() => new Map((docs.data ?? []).map((d) => [d.id, d])), [docs.data]);
   const inCategory = (catId: string | null) =>
-    !search.category || (search.category === UNCATEGORISED ? !catId || !catName.has(catId) : catId === search.category);
+    !search.category || (search.category === UNCATEGORISED ? !resolve(catId) : resolve(catId) === search.category);
 
   const counts = useMemo(() => {
     const m = new Map<string, number>();
     for (const d of docs.data ?? []) {
-      const k = d.category_id && catName.has(d.category_id) ? d.category_id : UNCATEGORISED;
+      const own = resolve(d.category_id);
+      const k = own ?? UNCATEGORISED;
       m.set(k, (m.get(k) ?? 0) + 1);
       // Sections inside a large plan count towards their category too.
-      for (const c of new Set((d.sections ?? []).map((x) => x.category_id).filter((x): x is string => !!x && x !== d.category_id))) m.set(c, (m.get(c) ?? 0) + 1);
+      for (const c of new Set((d.sections ?? []).map((x) => resolve(x.category_id)).filter((x): x is string => !!x && x !== own))) m.set(c, (m.get(c) ?? 0) + 1);
     }
     return m;
-  }, [docs.data, catName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docs.data, catById]);
 
   const groups = useMemo(() => {
     const list = (docs.data ?? []).filter((d) => inCategory(d.category_id));
     const out: Array<{ id: string; name: string; items: OpsDoc[] }> = [];
-    for (const c of cats.data ?? []) {
-      const items = list.filter((d) => d.category_id === c.id);
+    for (const c of shownCats) {
+      const items = list.filter((d) => resolve(d.category_id) === c.id);
       if (items.length) out.push({ id: c.id, name: c.name, items });
     }
-    const rest = list.filter((d) => !d.category_id || !catName.has(d.category_id));
+    const rest = list.filter((d) => !resolve(d.category_id));
     if (rest.length) out.push({ id: UNCATEGORISED, name: "", items: rest });
     return out;
-  }, [docs.data, cats.data, catName, search.category]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docs.data, shownCats, catById, search.category]);
 
   const searching = dq.length >= 2;
   const hitCategory = (h: OpsHit) => (h.section !== undefined ? h.section?.category_id ?? null : h.docCategoryId);
   const shownResults = results.hits.filter((h) => inCategory(hitCategory(h)));
   // Browsing a category also lists that section inside large plans.
   const sectionRows = search.category && search.category !== UNCATEGORISED
-    ? (docs.data ?? []).flatMap((d) => (d.sections ?? []).filter((x) => x.category_id === search.category).map((x) => ({ d, s: x, page: pageAt(d.pages, x.start) })))
+    ? (docs.data ?? []).flatMap((d) => (d.sections ?? []).filter((x) => resolve(x.category_id) === search.category).map((x) => ({ d, s: x, page: pageAt(d.pages, x.start) })))
     : [];
   // Older links (?doc=…&section=…) open the plan's own page.
   useEffect(() => {
@@ -204,7 +212,7 @@ function OperationsPage() {
             <SelectTrigger className="w-full sm:w-[26rem]" aria-label="Filter by category"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-80">
               <SelectItem value="all">All categories ({docs.data?.length ?? 0})</SelectItem>
-              {(cats.data ?? []).map((c) => (
+              {shownCats.map((c) => (
                 <SelectItem key={c.id} value={c.id}>{c.name} ({counts.get(c.id) ?? 0})</SelectItem>
               ))}
             </SelectContent>
@@ -310,7 +318,7 @@ function OperationsPage() {
         </div>
       )}
 
-      {canManage && <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} categories={cats.data ?? []} defaultCategory={search.category && search.category !== UNCATEGORISED ? search.category : undefined}
+      {canManage && <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} categories={shownCats} defaultCategory={search.category && search.category !== UNCATEGORISED ? search.category : undefined}
         userName={(user?.user_metadata as any)?.display_name ?? user?.email ?? null} />}
     </div>
   );

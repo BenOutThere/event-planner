@@ -16,7 +16,7 @@ import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Plus, Trash2, Mail, UserCog, AlertTriangle, Eye } from "lucide-react";
-import { ACCESS_INFO, GLOBAL_ROLE_INFO, type AccessLevel } from "@/lib/access";
+import { ACCESS_INFO, GLOBAL_ROLE_INFO, primaryRole, ROLE_RANK, type AccessLevel } from "@/lib/access";
 import { toast } from "sonner";
 import { OpsCategoriesCard } from "@/components/ops/categories-dialog";
 import {
@@ -85,14 +85,18 @@ function AdminUsers() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-users"] });
 
-  async function toggleRole(uid: string, role: Role, has: boolean) {
-    if (has) {
-      const { error } = await supabase.from("user_roles").delete().eq("user_id", uid).eq("role", role);
-      if (error) return toast.error(error.message);
-    } else {
+  // R20: each person has one role. Add the new one first, then remove the others.
+  async function setRole(uid: string, role: Role, current: Role[]) {
+    if (!current.includes(role)) {
       const { error } = await supabase.from("user_roles").insert({ user_id: uid, role });
       if (error) return toast.error(error.message);
     }
+    const others = current.filter((r) => r !== role);
+    if (others.length) {
+      const { error } = await supabase.from("user_roles").delete().eq("user_id", uid).in("role", others);
+      if (error) return toast.error(error.message);
+    }
+    toast.success(`Role set to ${GLOBAL_ROLE_INFO[role].label}`);
     invalidate();
   }
 
@@ -212,7 +216,7 @@ function AdminUsers() {
                     <div className="text-xs text-muted-foreground">{u.email}</div>
                   </div>
                   <div className="flex gap-1 mr-3">
-                    {u.roles.map((r: Role) => <Badge key={r} variant="outline">{GLOBAL_ROLE_INFO[r]?.label ?? r}</Badge>)}
+                    {primaryRole(u.roles) && <Badge variant="outline">{GLOBAL_ROLE_INFO[primaryRole(u.roles)!].label}</Badge>}
                     {u.memberships.some((m: any) => m.needs_review) && <Badge variant="outline" className="border-warning/60 bg-warning/15">Check access</Badge>}
                   </div>
                 </AccordionTrigger>
@@ -234,18 +238,19 @@ function AdminUsers() {
               <AccordionContent className="pt-2 pb-4 px-2 space-y-4">
                 <div>
                   <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
-                    <UserCog className="size-3.5" /> Global roles
+                    <UserCog className="size-3.5" /> Role
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    {ROLES.map((r) => {
-                      const has = u.roles.includes(r);
-                      return (
-                        <Button key={r} size="sm" variant={has ? "default" : "outline"} onClick={() => toggleRole(u.id, r, has)}>
-                          {has ? "−" : "+"} {GLOBAL_ROLE_INFO[r].label}
-                        </Button>
-                      );
-                    })}
-                  </div>
+                  <Select value={primaryRole(u.roles) ?? undefined} disabled={currentUser?.id === u.id}
+                    onValueChange={(v) => setRole(u.id, v as Role, u.roles)}>
+                    <SelectTrigger className="w-full sm:w-72" aria-label={`Role for ${u.display_name ?? u.email}`}><SelectValue placeholder="No role" /></SelectTrigger>
+                    <SelectContent>
+                      {ROLE_RANK.map((r) => <SelectItem key={r} value={r}>{GLOBAL_ROLE_INFO[r].label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {primaryRole(u.roles) ? GLOBAL_ROLE_INFO[primaryRole(u.roles)!].description : "Can't open any events until given a role."}
+                    {currentUser?.id === u.id && " You can't change your own role."}
+                  </p>
                 </div>
 
                 <EventAssignments

@@ -102,6 +102,57 @@ export type Database = {
           },
         ]
       }
+      directory_contacts: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          kind: string
+          name: string
+          notes: string | null
+          organisation: string | null
+          phone: string | null
+          role_title: string | null
+          updated_at: string
+          updated_by: string | null
+          website: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          kind?: string
+          name: string
+          notes?: string | null
+          organisation?: string | null
+          phone?: string | null
+          role_title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          website?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string | null
+          organisation?: string | null
+          phone?: string | null
+          role_title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       event_area_meta: {
         Row: {
           area_id: string
@@ -1024,6 +1075,7 @@ export type Database = {
       }
       events: {
         Row: {
+          template_variant: string
           accreditation_notes: string | null
           archived_at: string | null
           archived_by: string | null
@@ -1063,6 +1115,7 @@ export type Database = {
           workspace_links: Json
         }
         Insert: {
+          template_variant?: string
           accreditation_notes?: string | null
           archived_at?: string | null
           archived_by?: string | null
@@ -1102,6 +1155,7 @@ export type Database = {
           workspace_links?: Json
         }
         Update: {
+          template_variant?: string
           accreditation_notes?: string | null
           archived_at?: string | null
           archived_by?: string | null
@@ -1159,18 +1213,24 @@ export type Database = {
       }
       ops_categories: {
         Row: {
+          is_main: boolean
+          main_category_id: string | null
           created_at: string
           id: string
           name: string
           sort_order: number
         }
         Insert: {
+          is_main?: boolean
+          main_category_id?: string | null
           created_at?: string
           id?: string
           name: string
           sort_order?: number
         }
         Update: {
+          is_main?: boolean
+          main_category_id?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -1491,6 +1551,7 @@ export type Database = {
       }
       template_sections: {
         Row: {
+          variants: string[]
           created_at: string
           description: string | null
           id: string
@@ -1505,6 +1566,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          variants?: string[]
           created_at?: string
           description?: string | null
           id?: string
@@ -1519,6 +1581,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          variants?: string[]
           created_at?: string
           description?: string | null
           id?: string
@@ -1612,6 +1675,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      copy_event: {
+        Args: { _source: string; _name: string; _start: string; _end?: string; _areas?: string[] }
+        Returns: string
+      }
       ensure_member: { Args: never; Returns: boolean }
       event_directory: {
         Args: never
